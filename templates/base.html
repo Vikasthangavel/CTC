@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Challengers Tuition Centre</title>
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
@@ -150,5 +151,83 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- PWA Install Toast -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1050; padding-bottom: 80px !important;">
+        <div id="installToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="false">
+            <div class="toast-header bg-primary text-white">
+                <strong class="me-auto">Install App</strong>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body text-dark">
+                Install this application on your home screen for quick access and better experience!
+                <div class="mt-2 pt-2 border-top">
+                    <button type="button" class="btn btn-primary btn-sm" id="installBtn">Install</button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="toast">Later</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register("{{ url_for('static', filename='sw.js') }}").then(function(registration) {
+                    console.log('ServiceWorker registration successful');
+                }, function(err) {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+            });
+        }
+
+        let deferredPrompt;
+        const installToastEl = document.getElementById('installToast');
+        
+        if (installToastEl) {
+            const toastInstance = new bootstrap.Toast(installToastEl);
+            const installBtn = document.getElementById('installBtn');
+    
+            // Check if iOS
+            const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
+            const isInStandaloneMode = ('standalone' in window.navigator) && (window.navigator.standalone);
+
+            // 1. Standard PWA (Android/Desktop)
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                deferredPrompt = e;
+                toastInstance.show();
+            });
+
+            // 2. iOS Instruction (since beforeinstallprompt doesn't fire on iOS)
+            if (isIos && !isInStandaloneMode) {
+                const toastBody = installToastEl.querySelector('.toast-body');
+                toastBody.innerHTML = `
+                    To install this app on iOS:<br>
+                    1. Tap the <strong>Share</strong> button <i class="bi bi-box-arrow-up"></i><br>
+                    2. Scroll down and tap <strong>Add to Home Screen</strong> <i class="bi bi-plus-square"></i>
+                    <div class="mt-2 pt-2 border-top">
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="toast">Close</button>
+                    </div>
+                `;
+                // Check if user has dismissed it recently to avoid annoyance (optional, strictly asking to show)
+                setTimeout(() => {
+                    toastInstance.show();
+                }, 1000); 
+            }
+    
+            // Handle Install Button Click (Android/Desktop)
+            if (installBtn) {
+                installBtn.addEventListener('click', async () => {
+                    if (deferredPrompt) {
+                        deferredPrompt.prompt();
+                        const { outcome } = await deferredPrompt.userChoice;
+                        console.log(`User response to the install prompt: ${outcome}`);
+                        deferredPrompt = null;
+                        toastInstance.hide();
+                    }
+                });
+            }
+        }
+    </script>
 </body>
 </html>
