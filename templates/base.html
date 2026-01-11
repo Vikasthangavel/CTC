@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Challengers Tuition Centre</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        body { 
+            padding-bottom: 70px; /* Space for bottom nav */
+            padding-top: 60px;    /* Space for top header */
+            background-color: #050a14;
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(0, 243, 255, 0.08) 0%, transparent 25%), 
+                radial-gradient(circle at 85% 30%, rgba(255, 107, 0, 0.08) 0%, transparent 25%),
+                repeating-linear-gradient(90deg, rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 1px, transparent 1px, transparent 100px),
+                repeating-linear-gradient(0deg, rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 1px, transparent 1px, transparent 100px);
+            background-attachment: fixed;
+            color: #e0f7fa;
+        } 
+        
+        /* Glassmorphism for Navbars */
+        .navbar.fixed-top, .navbar.fixed-bottom {
+            background-color: rgba(5, 16, 32, 0.85) !important;
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(0, 243, 255, 0.2);
+        }
+        .navbar.fixed-bottom {
+            border-top: 1px solid rgba(0, 243, 255, 0.2);
+            border-bottom: none;
+        }
+
+        /* Card Styling to match Tech Theme */
+        .card {
+            background: rgba(12, 26, 46, 0.7);
+            backdrop-filter: blur(5px);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .card-header {
+            background: rgba(0, 0, 0, 0.2);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            color: #00f3ff; /* Cyan Text */
+            font-weight: bold;
+        }
+        
+        /* Typography & Accents */
+        h2, h4, h5 {
+            color: #00f3ff; /* Cyan Headings */
+            text-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
+        }
+        
+        .btn-primary {
+            background-color: #0d6efd;
+            border-color: #0d6efd;
+        }
+        
+        /* Bottom Nav Links */
+        .bottom-nav-link {
+            color: rgba(144, 202, 249, 0.6);
+            text-align: center;
+            font-size: 0.8rem;
+            text-decoration: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem;
+            transition: all 0.3s ease;
+        }
+        .bottom-nav-link:hover, .bottom-nav-link.active {
+            color: #00f3ff;
+            text-shadow: 0 0 8px rgba(0, 243, 255, 0.6);
+        }
+        .bottom-nav-link i {
+            font-size: 1.2rem;
+            margin-bottom: 2px;
+        }
+        
+        /* Form Controls Dark Mode Override fixes */
+        .form-control, .form-select {
+            background-color: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #fff;
+        }
+        .form-control:focus, .form-select:focus {
+            background-color: rgba(0, 0, 0, 0.5);
+            border-color: #00f3ff;
+            box-shadow: 0 0 0 0.25rem rgba(0, 243, 255, 0.25);
+            color: #fff;
+        }
+        
+        /* Table overrides */
+        .table {
+            --bs-table-color: #e0f7fa;
+            --bs-table-bg: transparent;
+            --bs-table-hover-color: #fff;
+            --bs-table-hover-bg: rgba(0, 243, 255, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Header for Brand -->
+    <nav class="navbar fixed-top shadow-sm">
+        <div class="container-fluid d-flex justify-content-between align-items-center">
+            <a class="navbar-brand mb-0 h1" href="{{ url_for('dashboard') }}" style="color: #00f3ff; text-shadow: 0 0 5px rgba(0,243,255,0.5);">Challengers TC</a>
+            {% if session.get('admin_id') %}
+            <a href="{{ url_for('logout') }}" class="text-white text-decoration-none small">
+                <i class="bi bi-box-arrow-right"></i> Logout
+            </a>
+            {% endif %}
+        </div>
+    </nav>
+    
+    <!-- Bottom Navigation Bar -->
+    {% if session.get('admin_id') %}
+    <nav class="navbar fixed-bottom shadow-lg p-0">
+        <div class="container-fluid d-flex justify-content-around">
+            <a class="bottom-nav-link {{ 'active' if request.endpoint == 'dashboard' }}" href="{{ url_for('dashboard') }}">
+                <i class="bi bi-speedometer2"></i>
+                <span>Home</span>
+            </a>
+            <a class="bottom-nav-link {{ 'active' if 'student' in request.endpoint }}" href="{{ url_for('students') }}">
+                <i class="bi bi-people-fill"></i>
+                <span>Students</span>
+            </a>
+            <a class="bottom-nav-link {{ 'active' if 'attendance' in request.endpoint }}" href="{{ url_for('attendance') }}">
+                <i class="bi bi-calendar-check"></i>
+                <span>Attend</span>
+            </a>
+            <a class="bottom-nav-link {{ 'active' if 'fee' in request.endpoint }}" href="{{ url_for('fees') }}">
+                <i class="bi bi-cash-coin"></i>
+                <span>Fees</span>
+            </a>
+        </div>
+    </nav>
+    {% endif %}
+
+    <div class="container mt-4">
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-info">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        {% block content %}{% endblock %}
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

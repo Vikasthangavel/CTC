@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Parent Dashboard</h2>
+    <a href="{{ url_for('logout') }}" class="btn btn-outline-danger btn-sm">Logout</a>
+</div>
+
+{% for data in children_data %}
+<div class="card mb-4 shadow-lg border-0">
+    <div class="card-header bg-primary bg-opacity-10">
+        <h4 class="mb-0 text-info">
+            <i class="bi bi-person-fill me-2"></i>{{ data.student.name }}
+            <span class="fs-6 text-white-50 ms-2">(Grade {{ data.student.grade }})</span>
+        </h4>
+    </div>
+    <div class="card-body">
+        
+        <!-- Attendance Summary -->
+        <h5 class="text-white-50 mb-3 fs-6 text-uppercase fw-bold"><i class="bi bi-graph-up me-2"></i>Attendance</h5>
+        <div class="row g-2 mb-4">
+            <div class="col-4">
+                <div class="p-2 py-3 bg-dark bg-opacity-50 rounded text-center border border-secondary h-100">
+                    <div class="h4 mb-1 text-white fw-bold">{{ data.attendance_stats.total }}</div>
+                    <div class="small text-muted text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.5px;">Total</div>
+                </div>
+            </div>
+            <div class="col-4">
+                <div class="p-2 py-3 bg-dark bg-opacity-50 rounded text-center border border-secondary h-100">
+                    <div class="h4 mb-1 text-success fw-bold">{{ data.attendance_stats.present }}</div>
+                    <div class="small text-muted text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.5px;">Present</div>
+                </div>
+            </div>
+            <div class="col-4">
+                <div class="p-2 py-3 bg-dark bg-opacity-50 rounded text-center border border-secondary h-100">
+                    <div class="h4 mb-1 text-info fw-bold">{{ data.attendance_stats.percentage }}%</div>
+                    <div class="small text-muted text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.5px;">Rate</div>
+                </div>
+            </div>
+        </div>
+
+        <hr class="border-secondary opacity-25 my-4">
+
+        <!-- Fee Status (Mobile Friendly List) -->
+        <h5 class="text-white-50 mb-3 fs-6 text-uppercase fw-bold"><i class="bi bi-wallet2 me-2"></i>Fees History</h5>
+        
+        <div class="list-group list-group-flush">
+            {% for fee in data.fees %}
+            <div class="list-group-item bg-transparent border-bottom border-secondary border-opacity-25 px-0 py-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="fw-bold text-light mb-1">{{ fee.month_year }}</div>
+                        <div class="small text-muted">Amount: <span class="text-white">{{ fee.amount }}</span></div>
+                    </div>
+                    <div class="text-end">
+                        {% if fee.status == 'Paid' %}
+                            <span class="badge bg-success bg-opacity-75 text-white mb-1 rounded-pill px-3">Paid</span>
+                            {% if fee.payment_date %}
+                            <div class="small text-muted" style="font-size: 0.7rem;">
+                                <i class="bi bi-check2-all"></i> {{ fee.payment_date }}
+                            </div>
+                            {% endif %}
+                        {% else %}
+                            <span class="badge bg-danger bg-opacity-75 text-white rounded-pill px-3">Unpaid</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="text-center text-muted py-4 small">
+                <i class="bi bi-inbox fs-4 d-block mb-2"></i>
+                No fee records found.
+            </div>
+            {% endfor %}
+        </div>
+
+    </div>
+</div>
+{% endfor %}
+{% endblock %}

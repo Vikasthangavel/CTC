@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-5">
+        <div class="card shadow-lg border-0">
+            <div class="card-header text-center">
+                <h4>Welcome Back</h4>
+                <p class="mb-0 text-white-50">Please enter your registered details</p>
+            </div>
+            <div class="card-body p-4">
+                {% if error %}
+                    <div class="alert alert-danger">{{ error }}</div>
+                {% endif %}
+                
+                <form method="post">
+                    <div class="mb-4">
+                        <label class="form-label text-info">Phone Number</label>
+                        <input type="tel" name="phone" class="form-control form-control-lg" 
+                               value="{{ phone if phone else '' }}" 
+                               placeholder="Enter your mobile number" 
+                               required 
+                               {% if admin_mode %}readonly{% endif %}>
+                    </div>
+
+                    {% if admin_mode %}
+                    <div class="mb-4">
+                        <label class="form-label text-info">Admin Password</label>
+                        <input type="password" name="password" class="form-control form-control-lg" placeholder="Enter admin PIN" required autofocus>
+                    </div>
+                    {% endif %}
+
+                    <button type="submit" class="btn btn-primary btn-lg w-100 py-2">
+                        {% if admin_mode %}Login as Admin{% else %}Continue{% endif %}
+                    </button>
+                    
+                    {% if admin_mode %}
+                    <div class="text-center mt-3">
+                        <a href="{{ url_for('login') }}" class="text-decoration-none text-muted small">Not Admin? Go back</a>
+                    </div>
+                    {% endif %}
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

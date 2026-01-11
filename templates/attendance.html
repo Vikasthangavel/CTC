@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Attendance Management</h2>
+    <button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target=".attendance-view" aria-expanded="false" id="toggleViewBtn">
+        View Monthly Report
+    </button>
+</div>
+
+<!-- Monthly Statistics Section -->
+<div class="collapse attendance-view" id="monthlyStats">
+    <div class="card card-body">
+        <h5 class="mb-3">Monthly Statistics</h5>
+        <form method="get" class="mb-3">
+            <div class="row align-items-end">
+                <div class="col-md-4">
+                    <label>Select Month</label>
+                    <input type="month" name="month" value="{{ selected_month }}" class="form-control" onchange="this.form.submit()">
+                </div>
+            </div>
+            {% if date %}
+            <input type="hidden" name="date" value="{{ date }}">
+            {% endif %}
+        </form>
+
+        <div class="table-responsive">
+            <table class="table table-sm table-bordered table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Student Name</th>
+                        <th>Grade</th>
+                        <th>Present Days</th>
+                        <th>Total Marked</th>
+                        <th>Attendance %</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for stat in stats %}
+                    <tr>
+                        <td>{{ stat.name }}</td>
+                        <td>{{ stat.grade }}</td>
+                        <td>{{ stat.present }}</td>
+                        <td>{{ stat.total }}</td>
+                        <td class="fw-bold {{ 'text-success' if stat.percentage >= 75 else 'text-warning' if stat.percentage >= 50 else 'text-danger' }}">
+                            {{ stat.percentage }}%
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted">No attendance data for this month.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="collapse show attendance-view" id="markAttendanceSection">
+    <hr>
+    <h3>Mark Daily Attendance</h3>
+    <form method="get" class="mb-4">
+        <div class="row">
+            <div class="col-md-4">
+                <label>Select Date</label>
+                <input type="date" name="date" class="form-control" value="{{ date }}" required onchange="this.form.submit()">
+                <input type="hidden" name="month" value="{{ selected_month }}">
+            </div>
+        </div>
+    </form>
+
+    {% if date %}
+    <h4>Mark Attendance for {{ date }}</h4>
+
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
+        {% for student in students %}
+        <div class="col">
+            <div class="card h-100 shadow-sm {{ 'border-success' if attendance[student.id] == 'Present' else 'border-danger' if attendance[student.id] == 'Absent' else '' }}">
+                <div class="card-body d-flex flex-column">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <h5 class="card-title mb-1">{{ student.name }}</h5>
+                            <div class="text-muted small">Grade: {{ student.grade }}</div>
+                        </div>
+                        {% if student.id in attendance %}
+                            <span class="badge bg-{{ 'success' if attendance[student.id] == 'Present' else 'danger' }}">
+                                {{ attendance[student.id] }}
+                            </span>
+                        {% else %}
+                            <span class="badge bg-secondary">Pending</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mt-auto pt-2">
+                        <form action="{{ url_for('mark_attendance') }}" method="post" class="d-flex gap-2">
+                            <input type="hidden" name="date" value="{{ date }}">
+                            <input type="hidden" name="student_id" value="{{ student.id }}">
+                            
+                            <button type="submit" name="status" value="Present" class="btn btn-lg flex-grow-1 {{ 'btn-success' if attendance[student.id] == 'Present' else 'btn-outline-success' }}">
+                                Present
+                            </button>
+                            <button type="submit" name="status" value="Absent" class="btn btn-lg flex-grow-1 {{ 'btn-danger' if attendance[student.id] == 'Absent' else 'btn-outline-danger' }}">
+                                Absent
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+
+<script>
+    document.getElementById('monthlyStats').addEventListener('show.bs.collapse', function () {
+        document.getElementById('toggleViewBtn').textContent = 'Back to Marking';
+    });
+    document.getElementById('monthlyStats').addEventListener('hide.bs.collapse', function () {
+        document.getElementById('toggleViewBtn').textContent = 'View Monthly Report';
+    });
+</script>
+{% endblock %}

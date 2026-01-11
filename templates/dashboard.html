@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2>Dashboard</h2>
+<div class="row mt-4">
+    <div class="col-md-4">
+        <div class="card text-white bg-success mb-3">
+            <div class="card-header">Total Students</div>
+            <div class="card-body">
+                <h1 class="card-title">{{ student_count }}</h1>
+                <a href="{{ url_for('students') }}" class="text-white">Manage Students</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-white bg-info mb-3">
+            <div class="card-header">Attendance</div>
+            <div class="card-body">
+                <h5 class="card-title">Mark Today's</h5>
+                <a href="{{ url_for('attendance') }}" class="text-white">Go to Attendance</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-white bg-warning mb-3">
+            <div class="card-header">Fees</div>
+            <div class="card-body">
+                <h5 class="card-title">Manage Fees</h5>
+                <a href="{{ url_for('fees') }}" class="text-white">Go to Fees</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
