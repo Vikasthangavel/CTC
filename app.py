@@ -1,5 +1,4 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash
-import sqlite3
 from datetime import datetime
 from db import init_db, get_db_connection
 
@@ -129,7 +128,7 @@ def parent_activity_report(student_id):
     # Query activities for that month
     query = '''
         SELECT * FROM daily_activities 
-        WHERE student_id = ? AND strftime('%Y-%m', activity_date) = ?
+        WHERE student_id = ? AND LEFT(activity_date, 7) = ?
         ORDER BY activity_date DESC, created_at DESC
     '''
     activities = conn.execute(query, (student_id, selected_month)).fetchall()
@@ -216,7 +215,7 @@ def activity_report(student_id):
     # Query activities for that month
     query = '''
         SELECT * FROM daily_activities 
-        WHERE student_id = ? AND strftime('%Y-%m', activity_date) = ?
+        WHERE student_id = ? AND LEFT(activity_date, 7) = ?
         ORDER BY activity_date DESC, created_at DESC
     '''
     activities = conn.execute(query, (student_id, selected_month)).fetchall()
@@ -317,7 +316,7 @@ def attendance():
             COUNT(a.id) as total_marked,
             SUM(CASE WHEN a.status = 'Present' THEN 1 ELSE 0 END) as present_count
         FROM students s
-        LEFT JOIN attendance a ON s.id = a.student_id AND strftime('%Y-%m', a.date) = ?
+        LEFT JOIN attendance a ON s.id = a.student_id AND LEFT(a.date, 7) = ?
         GROUP BY s.id
     '''
     stats_data = conn.execute(stats_query, (selected_month,)).fetchall()
