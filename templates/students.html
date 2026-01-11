@@ -34,9 +34,17 @@
                         <td>{{ student.grade }}</td>
                         <td>{{ student.parent_name }}</td>
                         <td>
-                            <a href="tel:{{ student.parent_contact }}" class="btn btn-sm btn-outline-primary">
-                                <i class="bi bi-telephone-fill"></i> Call
-                            </a>
+                            <div class="btn-group btn-group-sm">
+                                <button type="button" class="btn btn-outline-warning" data-bs-toggle="modal" data-bs-target="#activityModal" data-student-id="{{ student.id }}" data-student-name="{{ student.name }}" title="Add Activity">
+                                    <i class="bi bi-journal-plus"></i>
+                                </button>
+                                <a href="{{ url_for('activity_report', student_id=student.id) }}" class="btn btn-outline-info" title="View Report">
+                                    <i class="bi bi-journal-richtext"></i>
+                                </a>
+                                <a href="tel:{{ student.parent_contact }}" class="btn btn-outline-primary" title="Call Parent">
+                                    <i class="bi bi-telephone-fill"></i>
+                                </a>
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}
@@ -85,4 +93,56 @@
         </div>
     </div>
 </div>
+
+<!-- Add Activity Modal -->
+<div class="modal fade" id="activityModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Daily Activity: <span id="activityStudentName"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('add_activity') }}" method="post">
+                <div class="modal-body">
+                    <input type="hidden" name="student_id" id="activityStudentId">
+                    <div class="mb-3">
+                        <label class="form-label">Date</label>
+                        <input type="date" name="activity_date" class="form-control" required value="{{ current_date }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Activity / Homework / Note</label>
+                        <textarea name="content" class="form-control" rows="4" required placeholder="Ex: Completed Chapter 5 Math exercises."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-warning">Save Activity</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    const activityModal = document.getElementById('activityModal');
+    if (activityModal) {
+        activityModal.addEventListener('show.bs.modal', event => {
+            const button = event.relatedTarget;
+            const studentId = button.getAttribute('data-student-id');
+            const studentName = button.getAttribute('data-student-name');
+            
+            const modalTitle = activityModal.querySelector('#activityStudentName');
+            const modalInputId = activityModal.querySelector('#activityStudentId');
+            
+            modalTitle.textContent = studentName;
+            modalInputId.value = studentId;
+            
+            // Set default date to today
+            const dateInput = activityModal.querySelector('input[type="date"]');
+            if(dateInput && !dateInput.value) {
+                dateInput.valueAsDate = new Date();
+            }
+        });
+    }
+</script>
 {% endblock %}

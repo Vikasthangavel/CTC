@@ -96,14 +96,54 @@ def parent_dashboard():
         # Recent Fees
         fees = conn.execute('SELECT * FROM fees WHERE student_id = ? ORDER BY id DESC LIMIT 5', (s['id'],)).fetchall()
         
+        # Recent Activities (Limit to 2 for dashboard)
+        activities = conn.execute('SELECT * FROM daily_activities WHERE student_id = ? ORDER BY activity_date DESC, created_at DESC LIMIT 2', (s['id'],)).fetchall()
+        
         children_data.append({
             'student': s,
             'attendance_stats': {'total': total, 'present': present, 'percentage': percentage},
-            'fees': fees
+            'fees': fees,
+            'activities': activities
         })
         
     conn.close()
     return render_template('parent_dashboard.html', children_data=children_data)
+
+@app.route('/parent/activity_report/<int:student_id>')
+def parent_activity_report(student_id):
+    if 'parent_phone' not in session: return redirect(url_for('login'))
+    
+    conn = get_db_connection()
+    # Verify student belongs to parent
+    student = conn.execute('SELECT * FROM students WHERE id = ? AND parent_contact = ?', 
+                          (student_id, session['parent_phone'])).fetchone()
+    
+    if not student:
+        conn.close()
+        flash('Access Denied.')
+        return redirect(url_for('parent_dashboard'))
+    
+    # Get month from query or default to current
+    selected_month = request.args.get('month', datetime.now().strftime('%Y-%m'))
+    
+    # Query activities for that month
+    query = '''
+        SELECT * FROM daily_activities 
+        WHERE student_id = ? AND strftime('%Y-%m', activity_date) = ?
+        ORDER BY activity_date DESC, created_at DESC
+    '''
+    activities = conn.execute(query, (student_id, selected_month)).fetchall()
+    conn.close()
+    
+    # Format month name for display
+    dt = datetime.strptime(selected_month, '%Y-%m')
+    selected_month_name = dt.strftime('%B %Y')
+    
+    return render_template('parent_activity_report.html', 
+                         student=student, 
+                         activities=activities, 
+                         selected_month=selected_month,
+                         selected_month_name=selected_month_name)
 
 @app.route('/dashboard')
 def dashboard():
@@ -143,6 +183,78 @@ def add_student():
         conn.commit()
         conn.close()
         flash('Student added successfully!')
+    return redirect(url_for('students'))
+
+@app.route('/students/add_activity', methods=['POST'])
+def add_activity():
+    if not is_logged_in(): return redirect(url_for('login'))
+    
+    if request.method == 'POST':
+        student_id = request.form['student_id']
+        content = request.form['content']
+        activity_date = request.form.get('activity_date', datetime.now().strftime('%Y-%m-%d'))
+        
+        conn = get_db_connection()
+        conn.execute('INSERT INTO daily_activities (student_id, activity_date, content) VALUES (?, ?, ?)',
+                     (student_id, activity_date, content))
+        conn.commit()
+        conn.close()
+        flash('Activity logged successfully.')
+        
+    return redirect(url_for('students'))
+
+@app.route('/students/activity_report/<int:student_id>')
+def activity_report(student_id):
+    if not is_logged_in(): return redirect(url_for('login'))
+    
+    conn = get_db_connection()
+    student = conn.execute('SELECT * FROM students WHERE id = ?', (student_id,)).fetchone()
+    
+    # Get month from query or default to current
+    selected_month = request.args.get('month', datetime.now().strftime('%Y-%m'))
+    
+    # Query activities for that month
+    query = '''
+        SELECT * FROM daily_activities 
+        WHERE student_id = ? AND strftime('%Y-%m', activity_date) = ?
+        ORDER BY activity_date DESC, created_at DESC
+    '''
+    activities = conn.execute(query, (student_id, selected_month)).fetchall()
+    conn.close()
+    
+    # Format month name for display
+    dt = datetime.strptime(selected_month, '%Y-%m')
+    selected_month_name = dt.strftime('%B %Y')
+    
+    return render_template('activity_report.html', 
+                         student=student, 
+                         activities=activities, 
+                         selected_month=selected_month,
+                         selected_month_name=selected_month_name)
+
+@app.route('/activity/delete/<int:id>', methods=['POST'])
+def delete_activity(id):
+    if not is_logged_in(): return redirect(url_for('login'))
+    
+    conn = get_db_connection()
+    # Get student_id to redirect back
+    activity = conn.execute('SELECT student_id, activity_date FROM daily_activities WHERE id = ?', (id,)).fetchone()
+    if activity:
+        student_id = activity['student_id']
+        try:
+            # Need to convert date to YYYY-MM for the redirection to keep context if possible, 
+            # but simpler to just redirect to the report for that month
+            activity_month = activity['activity_date'][:7] 
+        except:
+            activity_month = datetime.now().strftime('%Y-%m')
+            
+        conn.execute('DELETE FROM daily_activities WHERE id = ?', (id,))
+        conn.commit()
+        conn.close()
+        flash('Activity deleted.')
+        return redirect(url_for('activity_report', student_id=student_id, month=activity_month))
+    
+    conn.close()
     return redirect(url_for('students'))
 
 @app.route('/students/edit/<int:id>', methods=['GET', 'POST'])

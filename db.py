@@ -68,6 +68,18 @@ def init_db():
             FOREIGN KEY (student_id) REFERENCES students (id)
         )
     ''')
+    
+    # Daily Activities table
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS daily_activities (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            student_id INTEGER NOT NULL,
+            activity_date TEXT NOT NULL,
+            content TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (student_id) REFERENCES students (id)
+        )
+    ''')
 
     conn.commit()
     conn.close()
