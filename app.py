@@ -5,8 +5,27 @@ from db import init_db, get_db_connection
 app = Flask(__name__)
 app.secret_key = 'poiuytrdfghjnbvcde'  # Change this to a random secret key
 
+@app.template_filter('format_datetime')
+def format_datetime(value, fmt='%Y-%m-%d %H:%M'):
+    if value is None: return ""
+    if isinstance(value, str): return value[:16]
+    return value.strftime(fmt)
+
 # Initialize DB if not exists
 init_db()
+
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('error.html', error_message="Page not found (404)"), 404
+
+@app.errorhandler(500)
+def internal_server_error(e):
+    return render_template('error.html', error_message="Internal Server Error (500)"), 500
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    # Pass the actual error message
+    return render_template('error.html', error_message=str(e)), 500
 
 def is_logged_in():
     return 'admin_id' in session
@@ -108,6 +127,25 @@ def parent_dashboard():
     conn.close()
     return render_template('parent_dashboard.html', children_data=children_data)
 
+@app.route('/parent/report', methods=['POST'])
+def submit_parent_report():
+    if 'parent_phone' not in session: return redirect(url_for('login'))
+    
+    student_id = request.form.get('student_id')
+    message = request.form.get('message')
+    
+    if student_id and message:
+        conn = get_db_connection()
+        conn.execute('INSERT INTO parent_reports (student_id, message) VALUES (?, ?)',
+                     (student_id, message))
+        conn.commit()
+        conn.close()
+        flash('Report submitted successfully!', 'success')
+    else:
+        flash('Please fill in all fields.', 'danger')
+        
+    return redirect(url_for('parent_dashboard'))
+
 @app.route('/parent/activity_report/<int:student_id>')
 def parent_activity_report(student_id):
     if 'parent_phone' not in session: return redirect(url_for('login'))
@@ -150,9 +188,18 @@ def dashboard():
     
     conn = get_db_connection()
     student_count = conn.execute('SELECT COUNT(*) FROM students').fetchone()[0]
+    
+    # Fetch recent parent reports
+    reports = conn.execute('''
+        SELECT r.*, s.name as student_name, s.grade 
+        FROM parent_reports r
+        JOIN students s ON r.student_id = s.id
+        ORDER BY r.report_date DESC LIMIT 7
+    ''').fetchall()
+    
     conn.close()
     
-    return render_template('dashboard.html', student_count=student_count)
+    return render_template('dashboard.html', student_count=student_count, reports=reports)
 
 # --- Student Management ---
 
@@ -175,10 +222,12 @@ def add_student():
         parent_name = request.form['parent_name']
         parent_contact = request.form['parent_contact']
         monthly_fee = request.form['monthly_fee']
+        dob = request.form.get('dob')
+        blood_group = request.form.get('blood_group')
         
         conn = get_db_connection()
-        conn.execute('INSERT INTO students (name, grade, parent_name, parent_contact, monthly_fee) VALUES (?, ?, ?, ?, ?)',
-                     (name, grade, parent_name, parent_contact, monthly_fee))
+        conn.execute('INSERT INTO students (name, grade, parent_name, parent_contact, monthly_fee, dob, blood_group) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                     (name, grade, parent_name, parent_contact, monthly_fee, dob, blood_group))
         conn.commit()
         conn.close()
         flash('Student added successfully!')
@@ -236,24 +285,29 @@ def delete_activity(id):
     if not is_logged_in(): return redirect(url_for('login'))
     
     conn = get_db_connection()
-    # Get student_id to redirect back
-    activity = conn.execute('SELECT student_id, activity_date FROM daily_activities WHERE id = ?', (id,)).fetchone()
-    if activity:
-        student_id = activity['student_id']
-        try:
-            # Need to convert date to YYYY-MM for the redirection to keep context if possible, 
-            # but simpler to just redirect to the report for that month
-            activity_month = activity['activity_date'][:7] 
-        except:
-            activity_month = datetime.now().strftime('%Y-%m')
+    try:
+        # Get student_id to redirect back
+        activity = conn.execute('SELECT student_id, activity_date FROM daily_activities WHERE id = ?', (id,)).fetchone()
+        if activity:
+            student_id = activity['student_id']
+            try:
+                # Need to convert date to YYYY-MM for the redirection to keep context if possible, 
+                # but simpler to just redirect to the report for that month
+                activity_month = activity['activity_date'][:7] 
+            except:
+                activity_month = datetime.now().strftime('%Y-%m')
+                
+            conn.execute('DELETE FROM daily_activities WHERE id = ?', (id,))
+            conn.commit()
             
-        conn.execute('DELETE FROM daily_activities WHERE id = ?', (id,))
-        conn.commit()
+            flash('Activity deleted.')
+            return redirect(url_for('activity_report', student_id=student_id, month=activity_month))
+    except Exception as e:
+        print(f"Error deleting activity: {e}")
+        flash('Error deleting activity. Please try again.', 'danger')
+    finally:
         conn.close()
-        flash('Activity deleted.')
-        return redirect(url_for('activity_report', student_id=student_id, month=activity_month))
     
-    conn.close()
     return redirect(url_for('students'))
 
 @app.route('/students/edit/<int:id>', methods=['GET', 'POST'])

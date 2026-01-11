@@ -36,7 +36,7 @@
                 <div class="card-body py-2 px-3">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25">{{ activity.activity_date }}</span>
-                        <small class="text-white-50" style="font-size: 0.7rem;">{{ activity.created_at[:16] }}</small>
+                        <small class="text-white-50" style="font-size: 0.7rem;">{{ activity.created_at|format_datetime }}</small>>
                     </div>
                     <p class="mb-0 small text-light">{{ activity.content }}</p>
                 </div>

@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-8 text-center">
+        <div class="card shadow-lg border border-danger border-opacity-50 bg-dark bg-opacity-75">
+            <div class="card-body p-5">
+                <div class="mb-4 text-danger">
+                    <i class="bi bi-exclamation-triangle-fill display-1"></i>
+                </div>
+                <h2 class="card-title text-white mb-3">Something Went Wrong</h2>
+                
+                <p class="card-text text-white-50 mb-4">
+                    We encountered an unexpected error while processing your request.
+                </p>
+
+                {% if error_message %}
+                <div class="alert alert-danger bg-danger bg-opacity-10 border-danger text-light mb-4 text-start">
+                    <strong>Error Details:</strong><br>
+                    <code class="text-warning">{{ error_message }}</code>
+                </div>
+                {% endif %}
+
+                <p class="text-muted small mb-4">
+                    Please report this error to the developer so it can be fixed.
+                </p>
+
+                <div class="d-grid gap-2 d-sm-block">
+                    <a href="{{ url_for('index') }}" class="btn btn-outline-light me-2">
+                        <i class="bi bi-house-fill me-1"></i> Go Home
+                    </a>
+                    <a href="https://wa.me/916381459911?text=Hello%2C%20I%20found%20an%20error%20in%20the%20app%3A%20{{ error_message|urlencode }}" 
+                       class="btn btn-success" target="_blank">
+                        <i class="bi bi-whatsapp me-1"></i> Please Tell To My Developer 🥲
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

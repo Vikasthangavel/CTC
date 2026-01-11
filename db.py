@@ -10,6 +10,8 @@ DB_CONFIG = {
     'password': os.getenv('DB_PASSWORD', ''),
     'host': os.getenv('DB_HOST', 'localhost'),
     'database': os.getenv('DB_NAME', 'ctc_db'),
+    'port': int(os.getenv('DB_PORT', 3306)),
+    'connection_timeout': 60 # Increase timeout for remote connections
 }
 
 class Row(dict):
@@ -132,11 +134,13 @@ def init_db():
             grade INT NOT NULL,
             parent_name VARCHAR(255) NOT NULL,
             parent_contact VARCHAR(255) NOT NULL,
-            monthly_fee FLOAT NOT NULL DEFAULT 0
+            monthly_fee FLOAT NOT NULL DEFAULT 0,
+            dob VARCHAR(20),
+            blood_group VARCHAR(10)
         )
     ''')
     
-    # Migration: Add monthly_fee column if it doesn't exist
+    # Migration: Add columns if they don't exist
     try:
         conn.execute('SELECT monthly_fee FROM students LIMIT 1')
     except Exception:
@@ -144,6 +148,15 @@ def init_db():
             conn.execute('ALTER TABLE students ADD COLUMN monthly_fee FLOAT NOT NULL DEFAULT 0')
         except Exception as e:
             print(f"Migration warning: {e}")
+
+    try:
+        conn.execute('SELECT dob FROM students LIMIT 1')
+    except Exception:
+        try:
+            conn.execute('ALTER TABLE students ADD COLUMN dob VARCHAR(20)')
+            conn.execute('ALTER TABLE students ADD COLUMN blood_group VARCHAR(10)')
+        except Exception as e:
+            print(f"Migration warning (dob/blood_group): {e}")
 
     # Attendance table
     conn.execute('''
@@ -177,6 +190,18 @@ def init_db():
             activity_date VARCHAR(20) NOT NULL,
             content TEXT NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (student_id) REFERENCES students (id)
+        )
+    ''')
+
+    # Parent Reports table
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS parent_reports (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            student_id INT NOT NULL,
+            message TEXT NOT NULL,
+            report_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            status VARCHAR(20) NOT NULL DEFAULT 'Unread',
             FOREIGN KEY (student_id) REFERENCES students (id)
         )
     ''')

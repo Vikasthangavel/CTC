@@ -88,7 +88,7 @@
                 <div class="card-body py-2 px-3">
                     <div class="d-flex justify-content-between align-items-center mb-1">
                         <small class="text-info fw-bold">{{ activity.activity_date }}</small>
-                        <small class="text-white-50" style="font-size: 0.7rem;">{{ activity.created_at[:16] }}</small>
+                        <small class="text-white-50" style="font-size: 0.7rem;">{{ activity.created_at|format_datetime }}</small>>
                     </div>
                     <p class="mb-0 small text-light">{{ activity.content }}</p>
                 </div>
@@ -100,6 +100,20 @@
             </div>
             {% endfor %}
         </div>
+
+        <hr class="border-secondary opacity-25 my-4">
+
+        <!-- Report to Admin -->
+        <h5 class="text-white-50 mb-3 fs-6 text-uppercase fw-bold"><i class="bi bi-chat-dots me-2"></i>Report About Student</h5>
+        <form action="{{ url_for('submit_parent_report') }}" method="POST">
+            <input type="hidden" name="student_id" value="{{ data.student.id }}">
+            <div class="mb-3">
+                <textarea class="form-control bg-dark text-light border-secondary" name="message" rows="3" required placeholder="Write your concern regarding {{ data.student.name }} here..."></textarea>
+            </div>
+            <div class="d-grid">
+                <button type="submit" class="btn btn-outline-warning btn-sm">Send to Admin</button>
+            </div>
+        </form>
 
     </div>
 </div>
