@@ -321,9 +321,11 @@ def edit_student(id):
         parent_name = request.form['parent_name']
         parent_contact = request.form['parent_contact']
         monthly_fee = request.form['monthly_fee']
+        dob = request.form.get('dob')
+        blood_group = request.form.get('blood_group')
         
-        conn.execute('UPDATE students SET name = ?, grade = ?, parent_name = ?, parent_contact = ?, monthly_fee = ? WHERE id = ?',
-                     (name, grade, parent_name, parent_contact, monthly_fee, id))
+        conn.execute('UPDATE students SET name = ?, grade = ?, parent_name = ?, parent_contact = ?, monthly_fee = ?, dob = ?, blood_group = ? WHERE id = ?',
+                     (name, grade, parent_name, parent_contact, monthly_fee, dob, blood_group, id))
         conn.commit()
         conn.close()
         flash('Student updated successfully!')

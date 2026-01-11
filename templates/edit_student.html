@@ -11,6 +11,28 @@
         <label>Grade (1-12)</label>
         <input type="number" name="grade" min="1" max="12" value="{{ student.grade }}" class="form-control" required>
     </div>
+    
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label class="form-label">Date of Birth</label>
+            <input type="date" name="dob" value="{{ student.dob }}" class="form-control">
+        </div>
+        <div class="col-md-6 mb-3">
+            <label class="form-label">Blood Group</label>
+            <select name="blood_group" class="form-select">
+                <option value="">Select...</option>
+                <option value="A+" {% if student.blood_group == 'A+' %}selected{% endif %}>A+</option>
+                <option value="A-" {% if student.blood_group == 'A-' %}selected{% endif %}>A-</option>
+                <option value="B+" {% if student.blood_group == 'B+' %}selected{% endif %}>B+</option>
+                <option value="B-" {% if student.blood_group == 'B-' %}selected{% endif %}>B-</option>
+                <option value="AB+" {% if student.blood_group == 'AB+' %}selected{% endif %}>AB+</option>
+                <option value="AB-" {% if student.blood_group == 'AB-' %}selected{% endif %}>AB-</option>
+                <option value="O+" {% if student.blood_group == 'O+' %}selected{% endif %}>O+</option>
+                <option value="O-" {% if student.blood_group == 'O-' %}selected{% endif %}>O-</option>
+            </select>
+        </div>
+    </div>
+
     <div class="mb-3">
         <label>Parent Name</label>
         <input type="text" name="parent_name" value="{{ student.parent_name }}" class="form-control" required>
