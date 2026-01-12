@@ -123,9 +123,35 @@ def parent_dashboard():
             'fees': fees,
             'activities': activities
         })
+
+    # Fetch recent relevant instructions
+    # Collect IDs and Grades for this parent's students
+    student_ids = [s['id'] for s in students]
+    student_grades = [s['grade'] for s in students]
+    
+    # We need to construct a robust query or filter below. 
+    # Since sqlite/mysql translation layer is custom, let's keep query simple and filter in python if list is small, or use complex ORs.
+    # Given typical volume, fetching recent 20 instructions and filtering in python is safe and easiest to maintain.
+    
+    all_recent_instructions = conn.execute('SELECT * FROM instructions ORDER BY created_at DESC LIMIT 20').fetchall()
+    
+    instructions = []
+    for instr in all_recent_instructions:
+        if instr['target_type'] == 'all' or instr['target_type'] is None:
+            instructions.append(instr)
+        elif instr['target_type'] == 'grade':
+            # target_value is string because DB stores VARCHAR. Ensure loose comparison.
+            if int(instr['target_value']) in student_grades:
+                instructions.append(instr)
+        elif instr['target_type'] == 'student':
+            if int(instr['target_value']) in student_ids:
+                instructions.append(instr)
+                
+    # Limit to top 5 after filtering
+    instructions = instructions[:5]
         
     conn.close()
-    return render_template('parent_dashboard.html', children_data=children_data)
+    return render_template('parent_dashboard.html', children_data=children_data, instructions=instructions)
 
 @app.route('/parent/report', methods=['POST'])
 def submit_parent_report():
@@ -196,10 +222,61 @@ def dashboard():
         JOIN students s ON r.student_id = s.id
         ORDER BY r.report_date DESC LIMIT 7
     ''').fetchall()
+
+    # Fetch recent instructions
+    instructions = conn.execute('SELECT * FROM instructions ORDER BY created_at DESC LIMIT 5').fetchall()
+    
+    # Fetch lists for target selection
+    all_students = conn.execute('SELECT id, name, grade FROM students ORDER BY grade, name').fetchall()
+    grades = sorted(list(set(s['grade'] for s in all_students)))
     
     conn.close()
     
-    return render_template('dashboard.html', student_count=student_count, reports=reports)
+    return render_template('dashboard.html', 
+                           student_count=student_count, 
+                           reports=reports, 
+                           instructions=instructions,
+                           all_students=all_students,
+                           grades=grades)
+
+@app.route('/add_instruction', methods=['POST'])
+def add_instruction():
+    if not is_logged_in(): return redirect(url_for('login'))
+    
+    message = request.form.get('message')
+    recipient = request.form.get('recipient')
+    
+    target_type = 'all'
+    target_value = None
+    
+    if recipient:
+        if recipient.startswith('grade_'):
+            target_type = 'grade'
+            target_value = recipient.split('_')[1]
+        elif recipient.startswith('student_'):
+            target_type = 'student'
+            target_value = recipient.split('_')[1]
+    
+    conn = get_db_connection()
+    conn.execute('INSERT INTO instructions (message, target_type, target_value) VALUES (?, ?, ?)', 
+                 (message, target_type, target_value))
+    conn.commit()
+    conn.close()
+    
+    flash('Instruction sent successfully!')
+    return redirect(url_for('dashboard'))
+
+@app.route('/delete_instruction/<int:id>', methods=['POST'])
+def delete_instruction(id):
+    if not is_logged_in(): return redirect(url_for('login'))
+    
+    conn = get_db_connection()
+    conn.execute('DELETE FROM instructions WHERE id = ?', (id,))
+    conn.commit()
+    conn.close()
+    
+    flash('Instruction deleted successfully!')
+    return redirect(url_for('dashboard'))
 
 # --- Student Management ---
 

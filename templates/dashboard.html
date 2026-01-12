@@ -32,6 +32,74 @@
     </div>
 </div>
 
+<div class="row mt-4">
+    <div class="col-md-6">
+         <div class="card text-white bg-dark mb-3 border border-secondary border-opacity-25 shadow-lg">
+             <div class="card-header border-bottom border-secondary border-opacity-25 bg-transparent">
+                <h5 class="mb-0 text-primary"><i class="bi bi-megaphone-fill me-2"></i>Send Instruction</h5>
+             </div>
+             <div class="card-body">
+                 <form action="{{ url_for('add_instruction') }}" method="POST">
+                     <div class="mb-3">
+                         <label for="recipient" class="form-label text-muted small text-uppercase">To:</label>
+                         <select class="form-select bg-dark text-white border-secondary" id="recipient" name="recipient">
+                             <option value="all">All Parents</option>
+                             <optgroup label="Entire Grades">
+                                 {% for g in grades %}
+                                 <option value="grade_{{ g }}">Grade {{ g }}</option>
+                                 {% endfor %}
+                             </optgroup>
+                             <optgroup label="Specific Students">
+                                 {% for s in all_students %}
+                                 <option value="student_{{ s.id }}">{{ s.name }} (Grade {{ s.grade }})</option>
+                                 {% endfor %}
+                             </optgroup>
+                         </select>
+                     </div>
+                     <div class="mb-3">
+                         <label for="message" class="form-label text-muted small text-uppercase">Message:</label>
+                         <textarea class="form-control bg-transparent text-white border-secondary" id="message" name="message" rows="3" placeholder="Enter message..." required></textarea>
+                     </div>
+                     <button type="submit" class="btn btn-primary w-100"><i class="bi bi-send-fill me-2"></i>Send</button>
+                 </form>
+             </div>
+         </div>
+    </div>
+    <div class="col-md-6">
+         <div class="card text-white bg-dark mb-3 border border-secondary border-opacity-25 shadow-lg">
+             <div class="card-header border-bottom border-secondary border-opacity-25 bg-transparent">
+                <h5 class="mb-0 text-info"><i class="bi bi-clock-history me-2"></i>Recent Instructions</h5>
+             </div>
+             <div class="card-body p-0">
+                 <div class="list-group list-group-flush">
+                     {% for instruction in instructions %}
+                     <div class="list-group-item bg-transparent text-light border-bottom border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
+                         <div>
+                             <small class="text-muted d-block mb-1" style="font-size: 0.75rem;">
+                                 {{ instruction.created_at | format_datetime }}
+                                 {% if instruction.target_type == 'grade' %}
+                                 <span class="badge bg-secondary ms-1">Grade {{ instruction.target_value }}</span>
+                                 {% elif instruction.target_type == 'student' %}
+                                 <span class="badge bg-info ms-1">Student ID: {{ instruction.target_value }}</span>
+                                 {% else %}
+                                 <span class="badge bg-success ms-1">All</span>
+                                 {% endif %}
+                             </small>
+                             <p class="mb-0 d-block text-white opacity-75">{{ instruction.message }}</p>
+                         </div>
+                         <form action="{{ url_for('delete_instruction', id=instruction.id) }}" method="POST" onsubmit="return confirm('Delete this instruction?');">
+                             <button type="submit" class="btn btn-sm btn-outline-danger border-0"><i class="bi bi-trash"></i></button>
+                         </form>
+                     </div>
+                     {% else %}
+                     <div class="p-3 text-center text-muted">No instructions sent yet.</div>
+                     {% endfor %}
+                 </div>
+             </div>
+         </div>
+    </div>
+</div>
+
 <div class="row mt-4 mb-5">
     <div class="col-12">
         <div class="card bg-dark bg-opacity-50 border border-secondary border-opacity-25 shadow-lg">

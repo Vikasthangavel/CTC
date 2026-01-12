@@ -6,6 +6,24 @@
     <a href="{{ url_for('logout') }}" class="btn btn-outline-danger btn-sm">Logout</a>
 </div>
 
+{% if instructions %}
+<div class="card mb-4 shadow-lg border-0 bg-dark bg-opacity-50 border-start border-4 border-info">
+    <div class="card-header bg-transparent border-0 pb-0">
+        <h5 class="text-info"><i class="bi bi-megaphone-fill me-2"></i>Tuition Announcements</h5>
+    </div>
+    <div class="card-body pt-2">
+        <ul class="list-group list-group-flush bg-transparent">
+            {% for instruction in instructions %}
+            <li class="list-group-item bg-transparent text-white border-bottom border-secondary border-opacity-25 px-0">
+                <small class="text-muted d-block mb-1">{{ instruction.created_at | format_datetime }}</small>
+                {{ instruction.message }}
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% endif %}
+
 {% for data in children_data %}
 <div class="card mb-4 shadow-lg border-0">
     <div class="card-header bg-primary bg-opacity-10">
@@ -41,7 +59,32 @@
 
         <hr class="border-secondary opacity-25 my-4">
 
-        <!-- Fee Status (Mobile Friendly List) -->
+        <!-- Daily Activities -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="text-white-50 mb-0 fs-6 text-uppercase fw-bold"><i class="bi bi-journal-text me-2"></i>Daily Activity</h5>
+            <a href="{{ url_for('parent_activity_report', student_id=data.student.id) }}" class="btn btn-outline-info btn-sm" style="font-size: 0.7rem;">Full Report</a>
+        </div>
+        
+        <div class="timeline">
+            {% for activity in data.activities %}
+            <div class="card mb-3 bg-dark bg-opacity-25 border border-secondary border-opacity-25">
+                <div class="card-body py-2 px-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <small class="text-info fw-bold">{{ activity.activity_date }}</small>
+                        <small class="text-white-50" style="font-size: 0.7rem;">{{ activity.created_at|format_datetime }}</small>>
+                    </div>
+                    <p class="mb-0 small text-light">{{ activity.content }}</p>
+                </div>
+            </div>
+            {% else %}
+            <div class="text-center text-muted py-3 small">
+                <i class="bi bi-journal-x fs-4 d-block mb-2"></i>
+                No recent activities.
+            </div>
+            {% endfor %}
+        </div>
+        <hr class="border-secondary opacity-25 my-4">
+         <!-- Fee Status (Mobile Friendly List) -->
         <h5 class="text-white-50 mb-3 fs-6 text-uppercase fw-bold"><i class="bi bi-wallet2 me-2"></i>Fees History</h5>
         
         <div class="list-group list-group-flush">
@@ -70,33 +113,6 @@
             <div class="text-center text-muted py-4 small">
                 <i class="bi bi-inbox fs-4 d-block mb-2"></i>
                 No fee records found.
-            </div>
-            {% endfor %}
-        </div>
-
-        <hr class="border-secondary opacity-25 my-4">
-
-        <!-- Daily Activities -->
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="text-white-50 mb-0 fs-6 text-uppercase fw-bold"><i class="bi bi-journal-text me-2"></i>Daily Activity</h5>
-            <a href="{{ url_for('parent_activity_report', student_id=data.student.id) }}" class="btn btn-outline-info btn-sm" style="font-size: 0.7rem;">Full Report</a>
-        </div>
-        
-        <div class="timeline">
-            {% for activity in data.activities %}
-            <div class="card mb-3 bg-dark bg-opacity-25 border border-secondary border-opacity-25">
-                <div class="card-body py-2 px-3">
-                    <div class="d-flex justify-content-between align-items-center mb-1">
-                        <small class="text-info fw-bold">{{ activity.activity_date }}</small>
-                        <small class="text-white-50" style="font-size: 0.7rem;">{{ activity.created_at|format_datetime }}</small>>
-                    </div>
-                    <p class="mb-0 small text-light">{{ activity.content }}</p>
-                </div>
-            </div>
-            {% else %}
-            <div class="text-center text-muted py-3 small">
-                <i class="bi bi-journal-x fs-4 d-block mb-2"></i>
-                No recent activities.
             </div>
             {% endfor %}
         </div>

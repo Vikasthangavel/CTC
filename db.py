@@ -205,6 +205,27 @@ def init_db():
             FOREIGN KEY (student_id) REFERENCES students (id)
         )
     ''')
+    
+    # Instructions/Announcements table
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS instructions (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            message TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            target_type VARCHAR(20) DEFAULT 'all',
+            target_value VARCHAR(50)
+        )
+    ''')
+
+    # Migration for instructions table
+    try:
+        conn.execute('SELECT target_type FROM instructions LIMIT 1')
+    except Exception:
+        try:
+            conn.execute("ALTER TABLE instructions ADD COLUMN target_type VARCHAR(20) DEFAULT 'all'")
+            conn.execute("ALTER TABLE instructions ADD COLUMN target_value VARCHAR(50)")
+        except Exception as e:
+            print(f"Migration warning (instructions): {e}")
 
     conn.commit()
     conn.close()

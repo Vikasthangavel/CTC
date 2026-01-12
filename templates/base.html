@@ -222,18 +222,20 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <!-- PWA Install Toast -->
-    <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1050; padding-bottom: 80px !important;">
-        <div id="installToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="false">
-            <div class="toast-header bg-primary text-white">
-                <strong class="me-auto">Install App</strong>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
-            </div>
-            <div class="toast-body text-dark">
-                Install this application on your home screen for quick access and better experience!
-                <div class="mt-2 pt-2 border-top">
-                    <button type="button" class="btn btn-primary btn-sm" id="installBtn">Install</button>
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="toast">Later</button>
+    <div class="toast-container position-fixed top-0 start-50 translate-middle-x p-3" style="z-index: 2000; width: 95%; max-width: 500px;">
+        <div id="installToast" class="toast bg-dark text-white border-1 border-info shadow-lg" role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="false">
+            <div class="d-flex">
+                <div class="toast-body w-100">
+                    <div class="d-flex align-items-start">
+                        <i class="bi bi-phone-vibrate text-info fs-4 me-3 mt-1"></i>
+                        <div>
+                            <h6 class="text-info fw-bold mb-1">Install App</h6>
+                            <p class="mb-2 text-light small opacity-75">Install this application on your home screen for quick access and better experience!</p>
+                            <button type="button" class="btn btn-sm btn-outline-info" id="installBtn">Install App</button>
+                        </div>
+                    </div>
                 </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto align-self-start mt-2" data-bs-dismiss="toast" aria-label="Close"></button>
             </div>
         </div>
     </div>
