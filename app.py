@@ -220,7 +220,7 @@ def dashboard():
         SELECT r.*, s.name as student_name, s.grade 
         FROM parent_reports r
         JOIN students s ON r.student_id = s.id
-        ORDER BY r.report_date DESC LIMIT 7
+        ORDER BY r.report_date DESC LIMIT 5
     ''').fetchall()
 
     # Fetch recent instructions
@@ -238,6 +238,21 @@ def dashboard():
                            instructions=instructions,
                            all_students=all_students,
                            grades=grades)
+
+@app.route('/all_reports')
+def all_reports():
+    if not is_logged_in(): return redirect(url_for('login'))
+    
+    conn = get_db_connection()
+    reports = conn.execute('''
+        SELECT r.*, s.name as student_name, s.grade 
+        FROM parent_reports r
+        JOIN students s ON r.student_id = s.id
+        ORDER BY r.report_date DESC
+    ''').fetchall()
+    conn.close()
+    
+    return render_template('all_reports.html', reports=reports)
 
 @app.route('/add_instruction', methods=['POST'])
 def add_instruction():
