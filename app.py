@@ -449,11 +449,22 @@ def attendance():
     
     selected_date = request.args.get('date')
     attendance_records = {} # Map student_id to status
-    
+    daily_stats = None
+
     if selected_date:
         records = conn.execute('SELECT * FROM attendance WHERE date = ?', (selected_date,)).fetchall()
         for r in records:
             attendance_records[r['student_id']] = r['status']
+        
+        # Calculate Daily Stats
+        present_count = sum(1 for status in attendance_records.values() if status == 'Present')
+        absent_count = sum(1 for status in attendance_records.values() if status == 'Absent')
+        not_marked_count = len(students) - len(attendance_records)
+        daily_stats = {
+            'present': present_count,
+            'absent': absent_count,
+            'not_marked': not_marked_count
+        }
             
     # --- Monthly Stats ---
     selected_month = request.args.get('month', datetime.now().strftime('%Y-%m'))
@@ -488,7 +499,8 @@ def attendance():
                            date=selected_date, 
                            attendance=attendance_records,
                            stats=stats,
-                           selected_month=selected_month)
+                           selected_month=selected_month,
+                           daily_stats=daily_stats)
 
 @app.route('/attendance/mark', methods=['POST'])
 def mark_attendance():
@@ -542,6 +554,15 @@ def fees():
     fee_map = {f['student_id']: f for f in fees_records}
     
     student_fees_list = []
+    
+    # Calculate Stats
+    stats = {
+        'paid_count': 0,
+        'unpaid_count': 0,
+        'total_collected': 0,
+        'total_pending': 0
+    }
+
     for s in students:
         fee = fee_map.get(s['id'])
         if fee:
@@ -557,9 +578,17 @@ def fees():
             'amount': amount,
             'fee_id': fee['id'] if fee else None
         })
+
+        # Update Stats
+        if status == 'Paid':
+            stats['paid_count'] += 1
+            stats['total_collected'] += amount if amount else 0
+        else:
+            stats['unpaid_count'] += 1
+            stats['total_pending'] += amount if amount else 0
         
     conn.close()
-    return render_template('fees.html', students=student_fees_list, selected_month=selected_month)
+    return render_template('fees.html', students=student_fees_list, selected_month=selected_month, stats=stats)
 
 @app.route('/fees/quick_pay', methods=['POST'])
 def quick_pay():

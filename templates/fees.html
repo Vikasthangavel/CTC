@@ -14,6 +14,27 @@
     </div>
 </form>
 
+<div class="row g-2 mb-4">
+    <div class="col-6">
+        <div class="card text-center bg-success text-white">
+            <div class="card-body p-2">
+                <h6 class="card-title mb-0 small">Paid</h6>
+                <p class="card-text fs-4 fw-bold mb-0">{{ stats.paid_count }}</p>
+                <small>₹{{ stats.total_collected }}</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-6">
+        <div class="card text-center bg-danger text-white">
+            <div class="card-body p-2">
+                <h6 class="card-title mb-0 small">Unpaid</h6>
+                <p class="card-text fs-4 fw-bold mb-0">{{ stats.unpaid_count }}</p>
+                <small>₹{{ stats.total_pending }}</small>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="card shadow-sm">
     <div class="card-body p-0">
         <div class="table-responsive">

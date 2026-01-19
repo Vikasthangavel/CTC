@@ -73,6 +73,35 @@
     {% if date %}
     <h4>Mark Attendance for {{ date }}</h4>
 
+    {% if daily_stats %}
+    <div class="row g-2 mb-4">
+        <div class="col-4">
+            <div class="card text-center bg-success text-white">
+                <div class="card-body p-2">
+                    <h6 class="card-title mb-0 small">Present</h6>
+                    <p class="card-text fs-4 fw-bold mb-0">{{ daily_stats.present }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-4">
+            <div class="card text-center bg-danger text-white">
+                <div class="card-body p-2">
+                    <h6 class="card-title mb-0 small">Absent</h6>
+                    <p class="card-text fs-4 fw-bold mb-0">{{ daily_stats.absent }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-4">
+            <div class="card text-center bg-secondary text-white">
+                <div class="card-body p-2">
+                    <h6 class="card-title mb-0 small">Not Marked</h6>
+                    <p class="card-text fs-4 fw-bold mb-0">{{ daily_stats.not_marked }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
         {% for student in students %}
         <div class="col">
