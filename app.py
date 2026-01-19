@@ -302,7 +302,57 @@ def students():
     conn = get_db_connection()
     students = conn.execute('SELECT * FROM students').fetchall()
     conn.close()
-    return render_template('students.html', students=students)
+
+    # Calculate Summary Stats
+    blood_groups = {}
+    grades = {}
+    birthday_count = 0
+    current_month = datetime.now().month
+    
+    for s in students:
+        # Blood Group
+        bg = s.get('blood_group')
+        # Normalize specific inputs if necessary, primarily handle None
+        bg_label = bg if bg else 'Not Set'
+        blood_groups[bg_label] = blood_groups.get(bg_label, 0) + 1
+            
+        # Grade
+        gr = s.get('grade')
+        gr_label = str(gr) if gr is not None else 'Not Set'
+        grades[gr_label] = grades.get(gr_label, 0) + 1
+        
+        # Birthday
+        dob = s.get('dob')
+        if dob:
+            try:
+                if isinstance(dob, str):
+                    # Handle YYYY-MM-DD string format
+                    parts = dob.split('-')
+                    if len(parts) == 3:
+                        dob_month = int(parts[1])
+                elif hasattr(dob, 'month'):
+                    dob_month = dob.month
+                else:
+                    dob_month = None
+
+                if dob_month == current_month:
+                    birthday_count += 1
+            except Exception:
+                pass
+
+    # Sort grades reasonably well
+    try:
+        sorted_grades = sorted(grades.items(), key=lambda x: int(x[0]) if x[0].isdigit() else 999)
+    except:
+        sorted_grades = sorted(grades.items())
+
+    summary = {
+        'blood_groups': blood_groups,
+        'grades': sorted_grades,
+        'birthday_count': birthday_count
+    }
+
+    return render_template('students.html', students=students, summary=summary)
 
 @app.route('/students/add', methods=['POST'])
 def add_student():
