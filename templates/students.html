@@ -62,11 +62,12 @@
         <div class="row g-3">
             <!-- Birthdays -->
              <div class="col-md-4">
-                <div class="card text-center bg-info text-white h-100 border-0">
+                <div class="card text-center bg-info text-white h-100 border-0" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#birthdayModal">
                     <div class="card-body d-flex flex-column justify-content-center">
                         <i class="bi bi-cake2 fs-1 mb-2"></i>
                         <h3 class="fw-bold">{{ summary.birthday_count }}</h3>
                         <p class="mb-0 small text-uppercase">Birthdays this Month</p>
+                        <small class="text-white-50">Click to view list</small>
                     </div>
                 </div>
             </div>
@@ -220,4 +221,44 @@
         });
     }
 </script>
+
+<!-- Birthday Modal -->
+<div class="modal fade" id="birthdayModal" tabindex="-1" aria-labelledby="birthdayModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-info text-white">
+        <h5 class="modal-title" id="birthdayModalLabel"><i class="bi bi-cake2-fill me-2"></i>Birthdays This Month</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-0">
+        {% if summary.birthday_students %}
+            <ul class="list-group list-group-flush">
+            {% for s in summary.birthday_students %}
+                <li class="list-group-item d-flex justify-content-between align-items-center p-3">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-light rounded-circle d-flex justify-content-center align-items-center me-3 text-info border" style="width: 40px; height: 40px;">
+                            <i class="bi bi-person-fill fs-5"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-0 fw-bold">{{ s.name }}</h6>
+                            <small class="text-muted">Grade {{ s.grade }}</small>
+                        </div>
+                    </div>
+                    <span class="badge bg-warning text-dark rounded-pill">{{ s.dob }}</span>
+                </li>
+            {% endfor %}
+            </ul>
+        {% else %}
+            <div class="text-center p-4">
+                <i class="bi bi-calendar-x fs-1 text-muted mb-2 d-block"></i>
+                <p class="text-muted mb-0">No birthdays found for this month.</p>
+            </div>
+        {% endif %}
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}

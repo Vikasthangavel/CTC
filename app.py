@@ -306,7 +306,7 @@ def students():
     # Calculate Summary Stats
     blood_groups = {}
     grades = {}
-    birthday_count = 0
+    birthday_students = []
     current_month = datetime.now().month
     
     for s in students:
@@ -330,13 +330,8 @@ def students():
                     parts = dob.split('-')
                     if len(parts) == 3:
                         dob_month = int(parts[1])
-                elif hasattr(dob, 'month'):
-                    dob_month = dob.month
-                else:
-                    dob_month = None
-
-                if dob_month == current_month:
-                    birthday_count += 1
+                        if dob_month == current_month:
+                            birthday_students.append(s)
             except Exception:
                 pass
 
@@ -349,7 +344,8 @@ def students():
     summary = {
         'blood_groups': blood_groups,
         'grades': sorted_grades,
-        'birthday_count': birthday_count
+        'birthday_count': len(birthday_students),
+        'birthday_students': birthday_students
     }
 
     return render_template('students.html', students=students, summary=summary)
