@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2>Attendance History</h2>
+<a href="{{ url_for('attendance') }}" class="btn btn-secondary mb-3">Back to Marking</a>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Date</th>
+            <th>Student Name</th>
+            <th>Status</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for record in history %}
+        <tr>
+            <td>{{ record.date }}</td>
+            <td>{{ record.name }}</td>
+            <td>
+                <span class="badge bg-{{ 'success' if record.status == 'Present' else 'danger' }}">
+                    {{ record.status }}
+                </span>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

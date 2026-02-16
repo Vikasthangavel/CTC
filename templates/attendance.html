@@ -1,0 +1,160 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Attendance Management</h2>
+    <button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target=".attendance-view" aria-expanded="false" id="toggleViewBtn">
+        View Monthly Report
+    </button>
+</div>
+
+<!-- Monthly Statistics Section -->
+<div class="collapse attendance-view" id="monthlyStats">
+    <div class="card card-body">
+        <h5 class="mb-3">Monthly Statistics</h5>
+        <form method="get" class="mb-3">
+            <div class="row align-items-end">
+                <div class="col-md-4">
+                    <label>Select Month</label>
+                    <input type="month" name="month" value="{{ selected_month }}" class="form-control" onchange="this.form.submit()">
+                </div>
+            </div>
+            {% if date %}
+            <input type="hidden" name="date" value="{{ date }}">
+            {% endif %}
+        </form>
+
+        <div class="table-responsive">
+            <table class="table table-sm table-bordered table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Student Name</th>
+                        <th>Grade</th>
+                        <th>Present Days</th>
+                        <th>Total Marked</th>
+                        <th>Attendance %</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for stat in stats %}
+                    <tr>
+                        <td>{{ stat.name }}</td>
+                        <td>{{ stat.grade }}</td>
+                        <td>{{ stat.present }}</td>
+                        <td>{{ stat.total }}</td>
+                        <td class="fw-bold {{ 'text-success' if stat.percentage >= 75 else 'text-warning' if stat.percentage >= 50 else 'text-danger' }}">
+                            {{ stat.percentage }}%
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted">No attendance data for this month.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="collapse show attendance-view" id="markAttendanceSection">
+    <hr>
+    <h3>Mark Daily Attendance</h3>
+    <form method="get" class="mb-4">
+        <div class="row">
+            <div class="col-md-4">
+                <label>Select Date</label>
+                <input type="date" name="date" class="form-control" value="{{ date }}" required onchange="this.form.submit()">
+                <input type="hidden" name="month" value="{{ selected_month }}">
+            </div>
+        </div>
+    </form>
+
+    {% if date %}
+    <h4>Mark Attendance for {{ date }}</h4>
+
+    {% if daily_stats %}
+    <div class="row g-2 mb-4">
+        <div class="col-4">
+            <div class="card text-center bg-success text-white">
+                <div class="card-body p-2">
+                    <h6 class="card-title mb-0 small">Present</h6>
+                    <p class="card-text fs-4 fw-bold mb-0">{{ daily_stats.present }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-4">
+            <div class="card text-center bg-danger text-white">
+                <div class="card-body p-2">
+                    <h6 class="card-title mb-0 small">Absent</h6>
+                    <p class="card-text fs-4 fw-bold mb-0">{{ daily_stats.absent }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-4">
+            <div class="card text-center bg-secondary text-white">
+                <div class="card-body p-2">
+                    <h6 class="card-title mb-0 small">Not Marked</h6>
+                    <p class="card-text fs-4 fw-bold mb-0">{{ daily_stats.not_marked }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <form action="{{ url_for('save_bulk_attendance') }}" method="post">
+        <input type="hidden" name="date" value="{{ date }}">
+        
+        <div class="d-flex justify-content-between align-items-center mb-3 sticky-top bg-body py-3 border-bottom" style="top: 0; z-index: 100;">
+            <span class="text-muted small">Select status for all students</span>
+            <button type="submit" class="btn btn-primary shadow-sm">
+                <i class="bi bi-save me-1"></i> Save Attendance
+            </button>
+        </div>
+
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
+            {% for student in students %}
+            <div class="col">
+                <div class="card h-100 shadow-sm {{ 'border-success' if attendance[student.id] == 'Present' else 'border-danger' if attendance[student.id] == 'Absent' else '' }}">
+                    <div class="card-body d-flex flex-column">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <h5 class="card-title mb-1">{{ student.name }}</h5>
+                                <div class="text-muted small">Grade: {{ student.grade }}</div>
+                            </div>
+                            {% if student.id in attendance %}
+                                <span class="badge bg-{{ 'success' if attendance[student.id] == 'Present' else 'danger' }}">
+                                    {{ attendance[student.id] }}
+                                </span>
+                            {% else %}
+                                <span class="badge bg-secondary">Pending</span>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mt-auto pt-2">
+                            <div class="btn-group w-100" role="group">
+                                <input type="radio" class="btn-check" name="status_{{ student.id }}" id="present_{{ student.id }}" value="Present" {{ 'checked' if attendance[student.id] == 'Present' else '' }} autocomplete="off">
+                                <label class="btn btn-outline-success" for="present_{{ student.id }}">Present</label>
+
+                                <input type="radio" class="btn-check" name="status_{{ student.id }}" id="absent_{{ student.id }}" value="Absent" {{ 'checked' if attendance[student.id] == 'Absent' else '' }} autocomplete="off">
+                                <label class="btn btn-outline-danger" for="absent_{{ student.id }}">Absent</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </form>
+    {% endif %}
+</div>
+
+<script>
+    document.getElementById('monthlyStats').addEventListener('show.bs.collapse', function () {
+        document.getElementById('toggleViewBtn').textContent = 'Back to Marking';
+    });
+    document.getElementById('monthlyStats').addEventListener('hide.bs.collapse', function () {
+        document.getElementById('toggleViewBtn').textContent = 'View Monthly Report';
+    });
+</script>
+{% endblock %}

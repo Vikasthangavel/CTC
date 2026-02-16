@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Challengers Tuition Centre</title>
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        /* Global Loader */
+        #global-loader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(5, 10, 20, 0.95);
+            backdrop-filter: blur(8px);
+            z-index: 9999;
+            display: none; /* Hidden by default */
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #00f3ff;
+        }
+        
+        /* Cyber Spinner */
+        .spinner-container {
+            position: relative;
+            width: 80px;
+            height: 80px;
+        }
+        .spin-ring {
+            position: absolute;
+            border-radius: 50%;
+            border: 4px solid transparent;
+        }
+        .spin-ring:nth-child(1) {
+            top: 0; left: 0; right: 0; bottom: 0;
+            border-top-color: #00f3ff;
+            animation: spin 1.5s linear infinite;
+        }
+        .spin-ring:nth-child(2) {
+            top: 10px; left: 10px; right: 10px; bottom: 10px;
+            border-right-color: #ff6b00;
+            animation: spin-reverse 2s linear infinite;
+        }
+        .spin-ring:nth-child(3) {
+            top: 25px; left: 25px; right: 25px; bottom: 25px;
+            border-bottom-color: #00f3ff;
+            animation: spin 3s linear infinite;
+        }
+        
+        .loading-text {
+            margin-top: 20px;
+            font-family: monospace;
+            letter-spacing: 2px;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes spin-reverse { 0% { transform: rotate(0deg); } 100% { transform: rotate(-360deg); } }
+        @keyframes pulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
+
+        body { 
+            padding-bottom: 70px; /* Space for bottom nav */
+            padding-top: 60px;    /* Space for top header */
+            background-color: #050a14;
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(0, 243, 255, 0.08) 0%, transparent 25%), 
+                radial-gradient(circle at 85% 30%, rgba(255, 107, 0, 0.08) 0%, transparent 25%),
+                repeating-linear-gradient(90deg, rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 1px, transparent 1px, transparent 100px),
+                repeating-linear-gradient(0deg, rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 1px, transparent 1px, transparent 100px);
+            background-attachment: fixed;
+            color: #e0f7fa;
+        } 
+        
+        /* Glassmorphism for Navbars */
+        .navbar.fixed-top, .navbar.fixed-bottom {
+            background-color: rgba(5, 16, 32, 0.85) !important;
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(0, 243, 255, 0.2);
+        }
+        .navbar.fixed-bottom {
+            border-top: 1px solid rgba(0, 243, 255, 0.2);
+            border-bottom: none;
+        }
+
+        /* Card Styling to match Tech Theme */
+        .card {
+            background: rgba(12, 26, 46, 0.7);
+            backdrop-filter: blur(5px);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .card-header {
+            background: rgba(0, 0, 0, 0.2);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            color: #00f3ff; /* Cyan Text */
+            font-weight: bold;
+        }
+        
+        /* Typography & Accents */
+        h2, h4, h5 {
+            color: #00f3ff; /* Cyan Headings */
+            text-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
+        }
+        
+        .btn-primary {
+            background-color: #0d6efd;
+            border-color: #0d6efd;
+        }
+        
+        /* Bottom Nav Links */
+        .bottom-nav-link {
+            color: rgba(144, 202, 249, 0.6);
+            text-align: center;
+            font-size: 0.8rem;
+            text-decoration: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem;
+            transition: all 0.3s ease;
+        }
+        .bottom-nav-link:hover, .bottom-nav-link.active {
+            color: #00f3ff;
+            text-shadow: 0 0 8px rgba(0, 243, 255, 0.6);
+        }
+        .bottom-nav-link i {
+            font-size: 1.2rem;
+            margin-bottom: 2px;
+        }
+        
+        /* Form Controls Dark Mode Override fixes */
+        .form-control, .form-select {
+            background-color: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #fff;
+        }
+        .form-control:focus, .form-select:focus {
+            background-color: rgba(0, 0, 0, 0.5);
+            border-color: #00f3ff;
+            box-shadow: 0 0 0 0.25rem rgba(0, 243, 255, 0.25);
+            color: #fff;
+        }
+        
+        /* Table overrides */
+        .table {
+            --bs-table-color: #e0f7fa;
+            --bs-table-bg: transparent;
+            --bs-table-hover-color: #fff;
+            --bs-table-hover-bg: rgba(0, 243, 255, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <!-- Global Loader -->
+    <div id="global-loader">
+        <div class="spinner-container">
+            <div class="spin-ring"></div>
+            <div class="spin-ring"></div>
+            <div class="spin-ring"></div>
+        </div>
+        <div class="loading-text">PROCESSING...</div>
+    </div>
+
+    <!-- Top Header for Brand -->
+    <nav class="navbar fixed-top shadow-sm">
+        <div class="container-fluid d-flex justify-content-between align-items-center">
+            <a class="navbar-brand mb-0 h1" href="{{ url_for('dashboard') }}" style="color: #00f3ff; text-shadow: 0 0 5px rgba(0,243,255,0.5);">Challengers TC</a>
+            {% if session.get('admin_id') %}
+            <a href="{{ url_for('logout') }}" class="text-white text-decoration-none small">
+                <i class="bi bi-box-arrow-right"></i> Logout
+            </a>
+            {% endif %}
+        </div>
+    </nav>
+    
+    <!-- Bottom Navigation Bar -->
+    {% if session.get('admin_id') %}
+    <nav class="navbar fixed-bottom shadow-lg p-0">
+        <div class="container-fluid d-flex justify-content-around">
+            <a class="bottom-nav-link {{ 'active' if request.endpoint == 'dashboard' }}" href="{{ url_for('dashboard') }}">
+                <i class="bi bi-speedometer2"></i>
+                <span>Home</span>
+            </a>
+            <a class="bottom-nav-link {{ 'active' if request.endpoint and 'student' in request.endpoint }}" href="{{ url_for('students') }}">
+                <i class="bi bi-people-fill"></i>
+                <span>Students</span>
+            </a>
+            <a class="bottom-nav-link {{ 'active' if request.endpoint and 'attendance' in request.endpoint }}" href="{{ url_for('attendance') }}">
+                <i class="bi bi-calendar-check"></i>
+                <span>Attend</span>
+            </a>
+            <a class="bottom-nav-link {{ 'active' if request.endpoint and 'fee' in request.endpoint }}" href="{{ url_for('fees') }}">
+                <i class="bi bi-cash-coin"></i>
+                <span>Fees</span>
+            </a>
+        </div>
+    </nav>
+    {% endif %}
+
+    <div class="container mt-4">
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-info">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        {% block content %}{% endblock %}
+    </div>
+
+    <footer class="text-center py-3 text-muted small mt-4">
+        Powered by <a href="https://www.time2orders.com" class="text-decoration-none text-info fw-bold" style="letter-spacing: 1px;">time2innovate</a>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- PWA Install Toast -->
+    <div class="toast-container position-fixed top-0 start-50 translate-middle-x p-3" style="z-index: 2000; width: 95%; max-width: 500px;">
+        <div id="installToast" class="toast bg-dark text-white border-1 border-info shadow-lg" role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="false">
+            <div class="d-flex">
+                <div class="toast-body w-100">
+                    <div class="d-flex align-items-start">
+                        <i class="bi bi-phone-vibrate text-info fs-4 me-3 mt-1"></i>
+                        <div>
+                            <h6 class="text-info fw-bold mb-1">Install App</h6>
+                            <p class="mb-2 text-light small opacity-75">Install this application on your home screen for quick access and better experience!</p>
+                            <button type="button" class="btn btn-sm btn-outline-info" id="installBtn">Install App</button>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto align-self-start mt-2" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Loader Logic
+        const loader = document.getElementById('global-loader');
+
+        function showLoader() {
+            if (loader) loader.style.display = 'flex';
+        }
+
+        function hideLoader() {
+            if (loader) loader.style.display = 'none';
+        }
+
+        // Show on form submit
+        document.querySelectorAll('form').forEach(form => {
+            form.addEventListener('submit', function() {
+                if (this.checkValidity()) {
+                    showLoader();
+                }
+            });
+        });
+
+        // Show on navigation
+        document.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', function(e) {
+                const href = this.getAttribute('href');
+                const target = this.getAttribute('target');
+                
+                if (href && (href.startsWith('#') || href.startsWith('javascript:') || href.startsWith('tel:') || href.startsWith('mailto:'))) {
+                    return;
+                }
+                if (target === '_blank') return;
+                
+                if (!e.ctrlKey && !e.metaKey && href) {
+                    showLoader();
+                }
+            });
+        });
+
+        // Hide when page is fully loaded (handles back button cache)
+        window.addEventListener('pageshow', function() {
+            hideLoader();
+        });
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register("{{ url_for('static', filename='sw.js') }}").then(function(registration) {
+                    console.log('ServiceWorker registration successful');
+                }, function(err) {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+            });
+        }
+
+        let deferredPrompt;
+        const installToastEl = document.getElementById('installToast');
+        
+        if (installToastEl) {
+            const toastInstance = new bootstrap.Toast(installToastEl);
+            const installBtn = document.getElementById('installBtn');
+    
+            // Check if iOS
+            const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
+            const isInStandaloneMode = ('standalone' in window.navigator) && (window.navigator.standalone);
+
+            // 1. Standard PWA (Android/Desktop)
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                deferredPrompt = e;
+                toastInstance.show();
+            });
+
+            // 2. iOS Instruction (since beforeinstallprompt doesn't fire on iOS)
+            if (isIos && !isInStandaloneMode) {
+                const toastBody = installToastEl.querySelector('.toast-body');
+                toastBody.innerHTML = `
+                    To install this app on iOS:<br>
+                    1. Tap the <strong>Share</strong> button <i class="bi bi-box-arrow-up"></i><br>
+                    2. Scroll down and tap <strong>Add to Home Screen</strong> <i class="bi bi-plus-square"></i>
+                    <div class="mt-2 pt-2 border-top">
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="toast">Close</button>
+                    </div>
+                `;
+                // Check if user has dismissed it recently to avoid annoyance (optional, strictly asking to show)
+                setTimeout(() => {
+                    toastInstance.show();
+                }, 1000); 
+            }
+    
+            // Handle Install Button Click (Android/Desktop)
+            if (installBtn) {
+                installBtn.addEventListener('click', async () => {
+                    if (deferredPrompt) {
+                        deferredPrompt.prompt();
+                        const { outcome } = await deferredPrompt.userChoice;
+                        console.log(`User response to the install prompt: ${outcome}`);
+                        deferredPrompt = null;
+                        toastInstance.hide();
+                    }
+                });
+            }
+        }
+    </script>
+</body>
+</html>

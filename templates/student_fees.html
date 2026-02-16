@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2>Fees for {{ student.name }}</h2>
+<a href="{{ url_for('fees') }}" class="btn btn-secondary mb-3">Back to Student List</a>
+
+<div class="card mb-4">
+    <div class="card-header">Add Fee Record</div>
+    <div class="card-body">
+        <form method="post">
+            <div class="row">
+                <div class="col-md-3">
+                    <label>Month/Year (e.g., Oct 2023)</label>
+                    <input type="text" name="month_year" class="form-control" required>
+                </div>
+                <div class="col-md-3">
+                    <label>Amount</label>
+                    <input type="number" name="amount" class="form-control" required>
+                </div>
+                <div class="col-md-3">
+                    <label>Status</label>
+                    <select name="status" class="form-select">
+                        <option value="Unpaid">Unpaid</option>
+                        <option value="Paid">Paid</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label>Payment Date (if Paid)</label>
+                    <input type="date" name="payment_date" class="form-control">
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary mt-3">Add Fee Record</button>
+        </form>
+    </div>
+</div>
+
+<h4>Fee History</h4>
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>Month</th>
+            <th>Amount</th>
+            <th>Status</th>
+            <th>Payment Date</th>
+            <th>Update Status</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for fee in fees %}
+        <tr>
+            <td>{{ fee.month_year }}</td>
+            <td>{{ fee.amount }}</td>
+            <td class="{{ 'text-success fw-bold' if fee.status == 'Paid' else 'text-danger fw-bold' }}">
+                {{ fee.status }}
+            </td>
+            <td>{{ fee.payment_date if fee.payment_date else '-' }}</td>
+            <td>
+                <form action="{{ url_for('update_fee', fee_id=fee.id) }}" method="post" class="d-flex gap-2">
+                    <input type="hidden" name="student_id" value="{{ student.id }}">
+                    <select name="status" class="form-select form-select-sm" style="width: auto;">
+                        <option value="Unpaid" {% if fee.status == 'Unpaid' %}selected{% endif %}>Unpaid</option>
+                        <option value="Paid" {% if fee.status == 'Paid' %}selected{% endif %}>Paid</option>
+                    </select>
+                    <input type="date" name="payment_date" value="{{ fee.payment_date }}" class="form-control form-control-sm" style="width: 130px;">
+                    <button type="submit" class="btn btn-sm btn-outline-primary">Update</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
