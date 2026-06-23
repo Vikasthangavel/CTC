@@ -87,6 +87,29 @@ export default function Layout({ children }) {
         </nav>
       )}
 
+      {/* ===== PARENT BOTTOM NAV ===== */}
+      {parentPhone && (
+        <nav className="bottom-nav">
+          <div className="bottom-nav__inner">
+            {[
+              { to: '/parent',          icon: 'home',     label: 'Home',     exact: true },
+              { to: '/parent/activity', icon: 'book',     label: 'Activity' },
+              { to: '/parent/fees',     icon: 'wallet',   label: 'Fees' },
+              { to: '/parent/report',   icon: 'reports',  label: 'Report' },
+            ].map(({ to, icon, label, exact }) => (
+              <Link
+                key={to}
+                className={`bottom-nav__item ${exact ? location.pathname === to : location.pathname.startsWith(to) ? 'active' : ''}`}
+                to={to}
+              >
+                <Icon name={icon} size={20} className="icon" />
+                <span>{label}</span>
+              </Link>
+            ))}
+          </div>
+        </nav>
+      )}
+
       <div className="page-wrapper">
         <div className="container">
           {children}

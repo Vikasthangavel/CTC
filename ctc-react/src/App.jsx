@@ -12,7 +12,11 @@ import ActivityReportPage from './pages/ActivityReportPage';
 import FeesPage from './pages/FeesPage';
 import StudentFeesPage from './pages/StudentFeesPage';
 import AllReportsPage from './pages/AllReportsPage';
-import ParentDashboardPage from './pages/ParentDashboardPage';
+// Parent pages
+import ParentHomePage from './pages/ParentHomePage';
+import ParentActivityPage from './pages/ParentActivityPage';
+import ParentFeesPage from './pages/ParentFeesPage';
+import ParentReportPage from './pages/ParentReportPage';
 import ParentActivityReportPage from './pages/ParentActivityReportPage';
 
 function AdminRoute({ children }) {
@@ -50,13 +54,16 @@ function AppRoutes() {
         <Route path="/reports" element={<AdminRoute><AllReportsPage /></AdminRoute>} />
 
         {/* Parent Routes */}
-        <Route path="/parent" element={<ParentRoute><ParentDashboardPage /></ParentRoute>} />
+        <Route path="/parent" element={<ParentRoute><ParentHomePage /></ParentRoute>} />
+        <Route path="/parent/activity" element={<ParentRoute><ParentActivityPage /></ParentRoute>} />
+        <Route path="/parent/fees" element={<ParentRoute><ParentFeesPage /></ParentRoute>} />
+        <Route path="/parent/report" element={<ParentRoute><ParentReportPage /></ParentRoute>} />
+        {/* Keep old full-report deep link */}
         <Route path="/parent/activity/:studentId" element={<ParentRoute><ParentActivityReportPage /></ParentRoute>} />
 
         {/* 404 */}
         <Route path="*" element={
           <div className="card" style={{ textAlign: 'center', padding: '60px', marginTop: '40px' }}>
-            <div style={{ fontSize: '4rem', marginBottom: '16px' }}>🚫</div>
             <h2>404 — Page Not Found</h2>
             <p style={{ color: 'var(--text-muted)', marginTop: '8px' }}>The page you're looking for doesn't exist.</p>
           </div>
