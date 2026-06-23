@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getStudents, getAttendanceByDate, saveBulkAttendance, getMonthlyAttendanceStats } from '../services/firestore';
 import Loader from '../components/Loader';
+import Icon from '../components/Icon';
 import { useToast } from '../components/Toast';
 
 export default function AttendancePage() {
@@ -13,7 +14,7 @@ export default function AttendancePage() {
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
   const [attendance, setAttendance] = useState({});
   const [monthlyStats, setMonthlyStats] = useState([]);
-  const [view, setView] = useState('mark'); // 'mark' | 'monthly'
+  const [view, setView] = useState('mark');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -65,16 +66,17 @@ export default function AttendancePage() {
   return (
     <>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h2>Attendance Management</h2>
+        <h2>Attendance</h2>
         <button className="btn btn-info" onClick={() => setView(v => v === 'mark' ? 'monthly' : 'mark')}>
-          {view === 'mark' ? '📊 Monthly Report' : '✏️ Mark Attendance'}
+          <Icon name={view === 'mark' ? 'chart' : 'attend'} size={14} />
+          {view === 'mark' ? 'Monthly Report' : 'Mark Attendance'}
         </button>
       </div>
 
       {/* Monthly Report View */}
       {view === 'monthly' && (
         <div className="card mb-4">
-          <div className="card-header">📊 Monthly Statistics</div>
+          <div className="card-header"><Icon name="chart" size={16} /> Monthly Statistics</div>
           <div className="card-body">
             <div className="form-group" style={{ maxWidth: '200px', marginBottom: '16px' }}>
               <label className="form-label">Select Month</label>
@@ -124,9 +126,9 @@ export default function AttendancePage() {
           {/* Daily Stats */}
           <div className="row mb-4" style={{ gap: '10px' }}>
             {[
-              { label: 'Present', value: dailyStats.present, color: 'var(--success)' },
-              { label: 'Absent',  value: dailyStats.absent,  color: 'var(--danger)' },
-              { label: 'Not Marked', value: dailyStats.notMarked, color: 'var(--text-muted)' },
+              { label: 'Present',    value: dailyStats.present,    color: 'var(--success)' },
+              { label: 'Absent',     value: dailyStats.absent,     color: 'var(--danger)' },
+              { label: 'Not Marked', value: dailyStats.notMarked,  color: 'var(--text-muted)' },
             ].map(({ label, value, color }) => (
               <div key={label} className="col stat-card" style={{ flex: '1' }}>
                 <div className="stat-card__number" style={{ color }}>{value}</div>
@@ -138,8 +140,9 @@ export default function AttendancePage() {
           {/* Save Button */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', position: 'sticky', top: '64px', zIndex: 100, background: 'var(--bg)', padding: '8px 0' }}>
             <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Select status for all students</span>
-            <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
-              {saving ? '⏳ Saving...' : '💾 Save Attendance'}
+            <button className="btn btn-primary" onClick={handleSave} disabled={saving} style={{ gap: '8px' }}>
+              <Icon name="save" size={14} />
+              {saving ? 'Saving...' : 'Save Attendance'}
             </button>
           </div>
 
@@ -150,7 +153,7 @@ export default function AttendancePage() {
               return (
                 <div key={s.id} className="card" style={{
                   flex: '0 0 calc(50% - 6px)',
-                  borderColor: status === 'Present' ? 'rgba(34,197,94,0.5)' : status === 'Absent' ? 'rgba(239,68,68,0.5)' : 'var(--border)'
+                  borderColor: status === 'Present' ? 'rgba(22,163,74,0.4)' : status === 'Absent' ? 'rgba(220,38,38,0.4)' : 'var(--border)'
                 }}>
                   <div className="card-body" style={{ padding: '14px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '10px' }}>
@@ -165,14 +168,18 @@ export default function AttendancePage() {
                     <div style={{ display: 'flex', gap: '0' }}>
                       <button
                         className={`btn btn-sm ${status === 'Present' ? 'btn-success' : 'btn-secondary'}`}
-                        style={{ flex: 1, borderRadius: '8px 0 0 8px' }}
+                        style={{ flex: 1, borderRadius: '8px 0 0 8px', gap: '4px' }}
                         onClick={() => setStatus(s.id, 'Present')}
-                      >✅ Present</button>
+                      >
+                        <Icon name="check" size={13} /> Present
+                      </button>
                       <button
                         className={`btn btn-sm ${status === 'Absent' ? 'btn-danger' : 'btn-secondary'}`}
-                        style={{ flex: 1, borderRadius: '0 8px 8px 0' }}
+                        style={{ flex: 1, borderRadius: '0 8px 8px 0', gap: '4px' }}
                         onClick={() => setStatus(s.id, 'Absent')}
-                      >❌ Absent</button>
+                      >
+                        <Icon name="close" size={13} /> Absent
+                      </button>
                     </div>
                   </div>
                 </div>

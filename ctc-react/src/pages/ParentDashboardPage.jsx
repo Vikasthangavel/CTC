@@ -6,10 +6,11 @@ import {
   getStudentFees, getRecentActivities, getInstructionsForParent, submitParentReport
 } from '../services/firestore';
 import Loader from '../components/Loader';
+import Icon from '../components/Icon';
 import { useToast } from '../components/Toast';
 
 export default function ParentDashboardPage() {
-  const { parentPhone, logout } = useAuth();
+  const { parentPhone } = useAuth();
   const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [childrenData, setChildrenData] = useState([]);
@@ -39,6 +40,9 @@ export default function ParentDashboardPage() {
 
       setChildrenData(childData);
       setInstructions(inst);
+    } catch (err) {
+      console.error('Error loading parent data:', err);
+      showToast('Error loading data. Please try again.', 'danger');
     } finally { setLoading(false); }
   }
 
@@ -66,14 +70,21 @@ export default function ParentDashboardPage() {
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <h2>Parent Dashboard</h2>
+      <div className="page-title">
+        <div>
+          <h2>Parent Dashboard</h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '2px' }}>
+            Viewing your child's information
+          </p>
+        </div>
       </div>
 
       {/* Announcements */}
       {instructions.length > 0 && (
-        <div className="card mb-4" style={{ borderLeft: '4px solid var(--cyan)', borderColor: 'rgba(0,243,255,0.4)' }}>
-          <div className="card-header">📢 Tuition Announcements</div>
+        <div className="card mb-4" style={{ borderLeft: '4px solid var(--primary)' }}>
+          <div className="card-header">
+            <Icon name="announce" size={16} /> Tuition Announcements
+          </div>
           <div className="list-group">
             {instructions.map(inst => (
               <div key={inst.id} className="list-group-item">
@@ -85,24 +96,43 @@ export default function ParentDashboardPage() {
         </div>
       )}
 
+      {/* No students found */}
+      {childrenData.length === 0 && (
+        <div className="card" style={{ textAlign: 'center', padding: '48px 24px' }}>
+          <Icon name="user" size={40} style={{ color: 'var(--text-light)', display: 'block', margin: '0 auto 12px' }} />
+          <p style={{ color: 'var(--text-muted)', marginBottom: '8px', fontWeight: 500 }}>
+            No student records found for your phone number.
+          </p>
+          <p style={{ color: 'var(--text-light)', fontSize: '0.82rem' }}>
+            Registered number: <strong>{parentPhone}</strong>
+          </p>
+          <p style={{ color: 'var(--text-light)', fontSize: '0.82rem', marginTop: '4px' }}>
+            Please contact your tuition admin if you believe this is an error.
+          </p>
+        </div>
+      )}
+
       {/* Children */}
       {childrenData.map(({ student, attendance_stats, fees, activities }) => (
         <div key={student.id} className="card mb-4">
-          <div className="card-header" style={{ background: 'rgba(13,110,253,0.1)' }}>
-            <h4 style={{ margin: 0, fontSize: '1.1rem' }}>
-              👤 {student.name}
-              <span style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)', marginLeft: '8px' }}>(Grade {student.grade})</span>
+          <div className="card-header" style={{ background: 'var(--primary-light)', borderBottom: '1px solid var(--border)' }}>
+            <h4 style={{ margin: 0, fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Icon name="user" size={18} />
+              {student.name}
+              <span className="badge badge-secondary" style={{ fontWeight: 500 }}>Grade {student.grade}</span>
             </h4>
           </div>
           <div className="card-body">
 
             {/* Attendance */}
-            <div className="section-title">📊 Attendance</div>
+            <div className="section-title">
+              <Icon name="chart" size={13} style={{ marginRight: '4px' }} /> Attendance
+            </div>
             <div className="row mb-4" style={{ gap: '10px' }}>
               {[
-                { label: 'Total', value: attendance_stats.total, color: 'var(--text)' },
-                { label: 'Present', value: attendance_stats.present, color: 'var(--success)' },
-                { label: 'Rate', value: `${attendance_stats.percentage}%`, color: 'var(--info)' },
+                { label: 'Total',   value: attendance_stats.total,      color: 'var(--text)' },
+                { label: 'Present', value: attendance_stats.present,    color: 'var(--success)' },
+                { label: 'Rate',    value: `${attendance_stats.percentage}%`, color: 'var(--info)' },
               ].map(({ label, value, color }) => (
                 <div key={label} className="col stat-card" style={{ flex: 1 }}>
                   <div className="stat-card__number" style={{ color }}>{value}</div>
@@ -115,15 +145,20 @@ export default function ParentDashboardPage() {
 
             {/* Activities */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <div className="section-title" style={{ flex: 1 }}>📔 Daily Activity</div>
-              <Link to={`/parent/activity/${student.id}`} className="btn btn-info btn-sm" style={{ fontSize: '0.72rem' }}>Full Report →</Link>
+              <div className="section-title" style={{ flex: 1, marginBottom: 0 }}>
+                <Icon name="book" size={13} style={{ marginRight: '4px' }} /> Daily Activity
+              </div>
+              <Link to={`/parent/activity/${student.id}`} className="btn btn-info btn-sm" style={{ fontSize: '0.72rem', marginLeft: '12px' }}>
+                Full Report
+              </Link>
             </div>
             {activities.length === 0 ? (
               <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '16px', fontSize: '0.85rem' }}>
-                📭 No recent activities.
+                <Icon name="inbox" size={24} style={{ display: 'block', margin: '0 auto 8px', opacity: 0.4 }} />
+                No recent activities.
               </div>
             ) : activities.map(act => (
-              <div key={act.id} className="card mb-2" style={{ background: 'rgba(255,255,255,0.03)' }}>
+              <div key={act.id} className="card mb-2">
                 <div className="card-body" style={{ padding: '10px 14px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                     <small className="text-info fw-bold">{act.activity_date}</small>
@@ -137,10 +172,13 @@ export default function ParentDashboardPage() {
             <div className="divider" />
 
             {/* Fees */}
-            <div className="section-title">💰 Fees History</div>
+            <div className="section-title">
+              <Icon name="wallet" size={13} style={{ marginRight: '4px' }} /> Fees History
+            </div>
             {fees.length === 0 ? (
               <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '16px', fontSize: '0.85rem' }}>
-                📭 No fee records found.
+                <Icon name="inbox" size={24} style={{ display: 'block', margin: '0 auto 8px', opacity: 0.4 }} />
+                No fee records found.
               </div>
             ) : (
               <div className="list-group">
@@ -153,7 +191,9 @@ export default function ParentDashboardPage() {
                     <div style={{ textAlign: 'right' }}>
                       <span className={`badge ${f.status === 'Paid' ? 'badge-success' : 'badge-danger'}`}>{f.status}</span>
                       {f.payment_date && (
-                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px' }}>✔✔ {f.payment_date}</div>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '3px', justifyContent: 'flex-end' }}>
+                          <Icon name="check" size={10} /> {f.payment_date}
+                        </div>
                       )}
                     </div>
                   </div>
@@ -164,7 +204,9 @@ export default function ParentDashboardPage() {
             <div className="divider" />
 
             {/* Report to Admin */}
-            <div className="section-title">💬 Report About Student</div>
+            <div className="section-title">
+              <Icon name="reports" size={13} style={{ marginRight: '4px' }} /> Report About Student
+            </div>
             <form onSubmit={e => handleSubmitReport(student.id, e)}>
               <div className="form-group">
                 <textarea
@@ -176,19 +218,14 @@ export default function ParentDashboardPage() {
                   required
                 />
               </div>
-              <button type="submit" className="btn btn-warning btn-block btn-sm" disabled={submitting === student.id}>
-                {submitting === student.id ? '⏳ Sending...' : '📨 Send to Admin'}
+              <button type="submit" className="btn btn-warning btn-block btn-sm" disabled={submitting === student.id} style={{ gap: '8px' }}>
+                <Icon name="send" size={14} />
+                {submitting === student.id ? 'Sending...' : 'Send to Admin'}
               </button>
             </form>
           </div>
         </div>
       ))}
-
-      {childrenData.length === 0 && (
-        <div className="card" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
-          No student records found for your phone number.
-        </div>
-      )}
     </>
   );
 }

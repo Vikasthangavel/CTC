@@ -1,5 +1,6 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import Icon from './Icon';
 
 export default function Layout({ children }) {
   const { adminLoggedIn, parentPhone, logout } = useAuth();
@@ -14,11 +15,11 @@ export default function Layout({ children }) {
   const isActive = (path) => location.pathname === path || location.pathname.startsWith(path + '/');
 
   const adminLinks = [
-    { to: '/dashboard',  icon: '🏠', label: 'Home' },
-    { to: '/students',   icon: '👥', label: 'Students' },
-    { to: '/attendance', icon: '📅', label: 'Attendance' },
-    { to: '/fees',       icon: '💰', label: 'Fees' },
-    { to: '/reports',    icon: '💬', label: 'Reports' },
+    { to: '/dashboard',  icon: 'home',     label: 'Home' },
+    { to: '/students',   icon: 'students', label: 'Students' },
+    { to: '/attendance', icon: 'attend',   label: 'Attendance' },
+    { to: '/fees',       icon: 'fees',     label: 'Fees' },
+    { to: '/reports',    icon: 'reports',  label: 'Reports' },
   ];
 
   return (
@@ -27,7 +28,8 @@ export default function Layout({ children }) {
       {adminLoggedIn && (
         <nav className="sidebar-nav">
           <Link className="sidebar-nav__brand" to="/dashboard">
-            ⚡ Challengers TC
+            <Icon name="lightning" size={18} />
+            Challengers TC
           </Link>
 
           <div className="sidebar-nav__menu">
@@ -38,15 +40,15 @@ export default function Layout({ children }) {
                 className={`sidebar-nav__item ${isActive(to) ? 'active' : ''}`}
                 to={to}
               >
-                <span className="icon">{icon}</span>
+                <Icon name={icon} size={17} className="icon" />
                 {label}
               </Link>
             ))}
           </div>
 
           <div className="sidebar-nav__footer">
-            <button className="sidebar-nav__item top-nav__logout" style={{ width: '100%' }} onClick={handleLogout}>
-              <span className="icon">⎋</span>
+            <button className="sidebar-nav__item" style={{ width: '100%', color: 'var(--danger)' }} onClick={handleLogout}>
+              <Icon name="logout" size={17} className="icon" />
               Logout
             </button>
           </div>
@@ -55,13 +57,14 @@ export default function Layout({ children }) {
 
       {/* ===== TOP NAV ===== */}
       <nav className="top-nav">
-        {/* Brand shown only on mobile (desktop shows in sidebar) */}
         <Link className="top-nav__brand" to={adminLoggedIn ? '/dashboard' : parentPhone ? '/parent' : '/login'}>
-          ⚡ Challengers TC
+          <Icon name="lightning" size={16} />
+          Challengers TC
         </Link>
         {(adminLoggedIn || parentPhone) && (
           <button className="top-nav__logout" onClick={handleLogout}>
-            ⎋ Logout
+            <Icon name="logout" size={14} />
+            Logout
           </button>
         )}
       </nav>
@@ -76,7 +79,7 @@ export default function Layout({ children }) {
                 className={`bottom-nav__item ${isActive(to) ? 'active' : ''}`}
                 to={to}
               >
-                <span className="icon">{icon}</span>
+                <Icon name={icon} size={20} className="icon" />
                 <span>{label}</span>
               </Link>
             ))}

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getStudent, getActivitiesByMonth, deleteActivity } from '../services/firestore';
 import Loader from '../components/Loader';
+import Icon from '../components/Icon';
 import { useToast } from '../components/Toast';
 
 export default function ActivityReportPage() {
@@ -47,7 +48,7 @@ export default function ActivityReportPage() {
   return (
     <>
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-        <button className="btn btn-secondary btn-sm" onClick={() => navigate('/students')}>← Back</button>
+        <button className="btn btn-secondary btn-sm" onClick={() => navigate('/students')} style={{ gap: '4px' }}><Icon name="arrowLeft" size={14} /> Back</button>
         <h2 style={{ margin: 0 }}>Activity Report: {student?.name}</h2>
       </div>
 
@@ -62,7 +63,7 @@ export default function ActivityReportPage() {
 
       {activities.length === 0 ? (
         <div className="card" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
-          <div style={{ fontSize: '2rem', marginBottom: '8px' }}>📔</div>
+          <Icon name="book" size={36} style={{ opacity: 0.3, display: 'block', margin: '0 auto 8px' }} />
           No activities logged for this month.
         </div>
       ) : (
@@ -75,7 +76,7 @@ export default function ActivityReportPage() {
                     <span className="text-info fw-bold" style={{ fontSize: '0.85rem' }}>{act.activity_date}</span>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginLeft: '10px' }}>{formatDate(act.created_at)}</span>
                   </div>
-                  <button className="btn btn-danger btn-sm" onClick={() => handleDelete(act.id)}>🗑</button>
+                  <button className="btn btn-danger btn-sm" onClick={() => handleDelete(act.id)} title="Delete"><Icon name="trash" size={13} /></button>
                 </div>
                 <p style={{ margin: 0, fontSize: '0.88rem', lineHeight: '1.5' }}>{act.content}</p>
               </div>

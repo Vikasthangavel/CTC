@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getAllParentReports, getStudents } from '../services/firestore';
 import Loader from '../components/Loader';
+import Icon from '../components/Icon';
 import { useNavigate } from 'react-router-dom';
 
 export default function AllReportsPage() {
@@ -15,7 +16,6 @@ export default function AllReportsPage() {
       const smap = {};
       studs.forEach(s => { smap[s.id] = s; });
       setStudents(smap);
-      // Attach student info to reports
       setReports(reps.map(r => ({ ...r, student: smap[r.student_id] })));
       setLoading(false);
     }
@@ -33,7 +33,9 @@ export default function AllReportsPage() {
   return (
     <>
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-        <button className="btn btn-secondary btn-sm" onClick={() => navigate('/dashboard')}>← Back</button>
+        <button className="btn btn-secondary btn-sm" onClick={() => navigate('/dashboard')}>
+          <Icon name="arrowLeft" size={14} /> Back
+        </button>
         <h2 style={{ margin: 0 }}>All Parent Reports</h2>
       </div>
 
@@ -41,7 +43,7 @@ export default function AllReportsPage() {
         <div className="list-group">
           {reports.length === 0 && (
             <div className="list-group-item text-center text-muted" style={{ padding: '40px' }}>
-              <div style={{ fontSize: '2.5rem', opacity: 0.3, marginBottom: '8px' }}>📥</div>
+              <Icon name="inbox" size={40} style={{ opacity: 0.3, display: 'block', margin: '0 auto 8px' }} />
               No reports received yet.
             </div>
           )}

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getStudent, updateStudent } from '../services/firestore';
 import Loader from '../components/Loader';
+import Icon from '../components/Icon';
 import { useToast } from '../components/Toast';
 
 const BLOOD_GROUPS = ['A+','A-','B+','B-','AB+','AB-','O+','O-'];
@@ -41,7 +42,7 @@ export default function EditStudentPage() {
   return (
     <>
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-        <button className="btn btn-secondary btn-sm" onClick={() => navigate('/students')}>← Back</button>
+        <button className="btn btn-secondary btn-sm" onClick={() => navigate('/students')} style={{ gap: '4px' }}><Icon name="arrowLeft" size={14} /> Back</button>
         <h2 style={{ margin: 0 }}>Edit Student</h2>
       </div>
 
@@ -75,7 +76,9 @@ export default function EditStudentPage() {
             </div>
             <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
               <button type="button" className="btn btn-secondary" onClick={() => navigate('/students')}>Cancel</button>
-              <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Saving...' : '💾 Update Student'}</button>
+              <button type="submit" className="btn btn-primary" disabled={saving} style={{ gap: '6px' }}>
+                <Icon name="save" size={14} /> {saving ? 'Saving...' : 'Update Student'}
+              </button>
             </div>
           </form>
         </div>

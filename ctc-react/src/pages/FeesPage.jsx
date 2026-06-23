@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getStudents, getFeesByMonth, quickPay } from '../services/firestore';
 import Loader from '../components/Loader';
+import Icon from '../components/Icon';
 import { useToast } from '../components/Toast';
 
 export default function FeesPage() {
@@ -117,11 +118,15 @@ export default function FeesPage() {
                         className="btn btn-success btn-sm"
                         onClick={() => handleQuickPay(item)}
                         disabled={paying === item.student.id}
+                        style={{ gap: '4px' }}
                       >
-                        {paying === item.student.id ? '⏳' : '✅ Mark Paid'}
+                        <Icon name="check" size={13} />
+                        {paying === item.student.id ? 'Processing...' : 'Mark Paid'}
                       </button>
                     ) : (
-                      <button className="btn btn-secondary btn-sm" disabled>✔ Paid</button>
+                      <button className="btn btn-secondary btn-sm" disabled style={{ gap: '4px' }}>
+                        <Icon name="check" size={13} /> Paid
+                      </button>
                     )}
                   </td>
                 </tr>

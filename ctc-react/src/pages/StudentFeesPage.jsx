@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getStudent, getStudentFees, addFeeRecord } from '../services/firestore';
 import Loader from '../components/Loader';
+import Icon from '../components/Icon';
 import { useToast } from '../components/Toast';
 
 export default function StudentFeesPage() {
@@ -46,13 +47,13 @@ export default function StudentFeesPage() {
   return (
     <>
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-        <button className="btn btn-secondary btn-sm" onClick={() => navigate('/fees')}>← Back</button>
+        <button className="btn btn-secondary btn-sm" onClick={() => navigate('/fees')} style={{ gap: '4px' }}><Icon name="arrowLeft" size={14} /> Back</button>
         <h2 style={{ margin: 0 }}>Fees: {student?.name}</h2>
       </div>
 
       {/* Add Record Form */}
       <div className="card mb-4">
-        <div className="card-header">➕ Add Fee Record</div>
+        <div className="card-header"><Icon name="plus" size={15} style={{ marginRight: '4px' }} /> Add Fee Record</div>
         <div className="card-body">
           <form onSubmit={handleAdd}>
             <div className="row">
@@ -77,14 +78,16 @@ export default function StudentFeesPage() {
                 <div className="form-group"><label className="form-label">Payment Date</label><input name="payment_date" type="date" className="form-control" value={form.payment_date} onChange={handle} /></div>
               </div>
             </div>
-            <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Saving...' : '💾 Add Record'}</button>
+            <button type="submit" className="btn btn-primary" disabled={saving} style={{ gap: '6px' }}>
+              <Icon name="save" size={14} /> {saving ? 'Saving...' : 'Add Record'}
+            </button>
           </form>
         </div>
       </div>
 
       {/* Fee History */}
       <div className="card">
-        <div className="card-header">📜 Fee History</div>
+        <div className="card-header"><Icon name="wallet" size={15} style={{ marginRight: '4px' }} /> Fee History</div>
         <div className="table-wrapper">
           <table>
             <thead>

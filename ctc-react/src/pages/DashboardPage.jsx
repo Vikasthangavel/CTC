@@ -5,6 +5,7 @@ import {
   addInstruction, deleteInstruction
 } from '../services/firestore';
 import Loader from '../components/Loader';
+import Icon from '../components/Icon';
 import { useToast } from '../components/Toast';
 
 export default function DashboardPage() {
@@ -74,7 +75,6 @@ export default function DashboardPage() {
 
   return (
     <>
-      {/* Page Title */}
       <div className="page-title">
         <div>
           <h2>Dashboard</h2>
@@ -84,34 +84,36 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ── Stats Row ── */}
+      {/* Stats Row */}
       <div className="row mb-4">
         <div className="col stat-card">
-          <div className="stat-card__icon success">👥</div>
+          <div className="stat-card__icon success"><Icon name="students" size={24} /></div>
           <div className="stat-card__number text-success">{students.length}</div>
           <div className="stat-card__label">Total Students</div>
-          <Link to="/students" className="btn btn-success btn-sm" style={{ marginTop: '4px' }}>Manage →</Link>
+          <Link to="/students" className="btn btn-success btn-sm" style={{ marginTop: '4px' }}>Manage</Link>
         </div>
         <div className="col stat-card">
-          <div className="stat-card__icon info">📅</div>
-          <div className="stat-card__number text-info">—</div>
+          <div className="stat-card__icon info"><Icon name="attend" size={24} /></div>
+          <div className="stat-card__number text-info" style={{ fontSize: '1.2rem' }}>Today</div>
           <div className="stat-card__label">Attendance</div>
-          <Link to="/attendance" className="btn btn-info btn-sm" style={{ marginTop: '4px' }}>Mark Today →</Link>
+          <Link to="/attendance" className="btn btn-info btn-sm" style={{ marginTop: '4px' }}>Mark Today</Link>
         </div>
         <div className="col stat-card">
-          <div className="stat-card__icon warning">💰</div>
-          <div className="stat-card__number text-warning">—</div>
-          <div className="stat-card__label">Fees</div>
-          <Link to="/fees" className="btn btn-warning btn-sm" style={{ marginTop: '4px' }}>Manage →</Link>
+          <div className="stat-card__icon warning"><Icon name="fees" size={24} /></div>
+          <div className="stat-card__number text-warning" style={{ fontSize: '1.2rem' }}>Fees</div>
+          <div className="stat-card__label">Fee Management</div>
+          <Link to="/fees" className="btn btn-warning btn-sm" style={{ marginTop: '4px' }}>Manage</Link>
         </div>
       </div>
 
-      {/* ── Instructions Row ── */}
+      {/* Instructions Row */}
       <div className="row mb-4">
         {/* Send Instruction */}
         <div className="col">
           <div className="card">
-            <div className="card-header">📢 Send Instruction</div>
+            <div className="card-header">
+              <Icon name="announce" size={16} /> Send Instruction
+            </div>
             <div className="card-body">
               <form onSubmit={handleSendInstruction}>
                 <div className="form-group">
@@ -136,8 +138,9 @@ export default function DashboardPage() {
                     required
                   />
                 </div>
-                <button type="submit" className="btn btn-primary btn-block" disabled={sending}>
-                  {sending ? '⏳ Sending...' : '📤 Send'}
+                <button type="submit" className="btn btn-primary btn-block" disabled={sending} style={{ gap: '8px' }}>
+                  <Icon name="send" size={15} />
+                  {sending ? 'Sending...' : 'Send'}
                 </button>
               </form>
             </div>
@@ -147,11 +150,13 @@ export default function DashboardPage() {
         {/* Recent Instructions */}
         <div className="col">
           <div className="card">
-            <div className="card-header">🕐 Recent Instructions</div>
+            <div className="card-header">
+              <Icon name="clock" size={16} /> Recent Instructions
+            </div>
             <div className="list-group">
               {instructions.length === 0 && (
                 <div className="list-group-item text-center text-muted" style={{ padding: '32px' }}>
-                  <div style={{ fontSize: '1.8rem', opacity: 0.3, marginBottom: '8px' }}>📭</div>
+                  <Icon name="inbox" size={32} style={{ opacity: 0.3, display: 'block', margin: '0 auto 8px' }} />
                   No instructions sent yet.
                 </div>
               )}
@@ -166,7 +171,9 @@ export default function DashboardPage() {
                     </div>
                     <p style={{ margin: 0, fontSize: '0.88rem', opacity: 0.85 }}>{inst.message}</p>
                   </div>
-                  <button className="btn btn-danger btn-sm" onClick={() => handleDelete(inst.id)}>🗑</button>
+                  <button className="btn btn-danger btn-sm" onClick={() => handleDelete(inst.id)} title="Delete">
+                    <Icon name="trash" size={13} />
+                  </button>
                 </div>
               ))}
             </div>
@@ -174,16 +181,18 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ── Parent Reports ── */}
+      {/* Parent Reports */}
       <div className="card mb-4">
         <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span>💬 Recent Parent Reports</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Icon name="reports" size={16} /> Recent Parent Reports
+          </span>
           <Link to="/reports" className="btn btn-info btn-sm">View All</Link>
         </div>
         <div className="list-group">
           {reports.length === 0 && (
             <div className="list-group-item text-center text-muted" style={{ padding: '40px' }}>
-              <div style={{ fontSize: '2rem', opacity: 0.3, marginBottom: '8px' }}>📥</div>
+              <Icon name="inbox" size={40} style={{ opacity: 0.3, display: 'block', margin: '0 auto 8px' }} />
               No reports received yet.
             </div>
           )}

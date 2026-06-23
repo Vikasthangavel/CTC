@@ -5,6 +5,7 @@ import {
   addActivity
 } from '../services/firestore';
 import Loader from '../components/Loader';
+import Icon from '../components/Icon';
 import { useToast } from '../components/Toast';
 
 const BLOOD_GROUPS = ['A+','A-','B+','B-','AB+','AB-','O+','O-'];
@@ -31,8 +32,8 @@ function AddStudentModal({ onClose, onSaved }) {
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal-sheet" onClick={e => e.stopPropagation()}>
-        <button className="modal-close" onClick={onClose}>✕</button>
-        <h4>👤 Add New Student</h4>
+        <button className="modal-close" onClick={onClose}><Icon name="close" size={16} /></button>
+        <h4><Icon name="user" size={18} /> Add New Student</h4>
         <form onSubmit={submit}>
           <div className="form-group"><label className="form-label">Student Name</label><input name="name" className="form-control" value={form.name} onChange={handle} required /></div>
           <div className="form-group"><label className="form-label">Grade (1-12)</label><input name="grade" type="number" min="1" max="12" className="form-control" value={form.grade} onChange={handle} required /></div>
@@ -55,7 +56,9 @@ function AddStudentModal({ onClose, onSaved }) {
           <div className="form-group"><label className="form-label">Monthly Fee (₹)</label><input name="monthly_fee" type="number" className="form-control" value={form.monthly_fee} onChange={handle} required /></div>
           <div className="modal-footer">
             <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
-            <button type="submit" className="btn btn-success" disabled={saving}>{saving ? 'Adding...' : '✔ Add Student'}</button>
+            <button type="submit" className="btn btn-success" disabled={saving}>
+              <Icon name="check" size={14} /> {saving ? 'Adding...' : 'Add Student'}
+            </button>
           </div>
         </form>
       </div>
@@ -85,14 +88,16 @@ function ActivityModal({ student, onClose, onSaved }) {
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal-sheet" onClick={e => e.stopPropagation()}>
-        <button className="modal-close" onClick={onClose}>✕</button>
-        <h4>📔 Daily Activity: {student.name}</h4>
+        <button className="modal-close" onClick={onClose}><Icon name="close" size={16} /></button>
+        <h4><Icon name="book" size={18} /> Daily Activity: {student.name}</h4>
         <form onSubmit={submit}>
           <div className="form-group"><label className="form-label">Date</label><input type="date" className="form-control" value={date} onChange={e => setDate(e.target.value)} required /></div>
           <div className="form-group"><label className="form-label">Activity / Homework / Note</label><textarea className="form-control" rows="4" value={content} onChange={e => setContent(e.target.value)} placeholder="Ex: Completed Chapter 5 Math exercises." required /></div>
           <div className="modal-footer">
             <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
-            <button type="submit" className="btn btn-warning" disabled={saving}>{saving ? 'Saving...' : '💾 Save Activity'}</button>
+            <button type="submit" className="btn btn-warning" disabled={saving}>
+              <Icon name="save" size={14} /> {saving ? 'Saving...' : 'Save Activity'}
+            </button>
           </div>
         </form>
       </div>
@@ -110,8 +115,8 @@ function BirthdayModal({ students, onClose }) {
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal-sheet" onClick={e => e.stopPropagation()}>
-        <button className="modal-close" onClick={onClose}>✕</button>
-        <h4>🎂 Birthdays This Month</h4>
+        <button className="modal-close" onClick={onClose}><Icon name="close" size={16} /></button>
+        <h4><Icon name="cake" size={18} /> Birthdays This Month</h4>
         {birthdays.length === 0 ? (
           <div className="text-center text-muted" style={{ padding: '32px' }}>No birthdays this month.</div>
         ) : (
@@ -167,7 +172,6 @@ export default function StudentsPage() {
     fetchAll();
   }
 
-  // Summary stats
   const bloodGroups = {};
   allStudents.forEach(s => {
     const bg = s.blood_group || 'Not Set';
@@ -199,9 +203,12 @@ export default function StudentsPage() {
         <h2>Student Management</h2>
         <div style={{ display: 'flex', gap: '8px' }}>
           <button className="btn btn-secondary" onClick={() => setShowInactive(v => !v)}>
-            {showInactive ? '🙈 Hide Inactive' : '👁 Show Inactive'}
+            <Icon name={showInactive ? 'eyeOff' : 'eye'} size={14} />
+            {showInactive ? 'Hide Inactive' : 'Show Inactive'}
           </button>
-          <button className="btn btn-success" onClick={() => setShowAddModal(true)}>➕ Add Student</button>
+          <button className="btn btn-success" onClick={() => setShowAddModal(true)}>
+            <Icon name="plus" size={14} /> Add Student
+          </button>
         </div>
       </div>
 
@@ -223,7 +230,7 @@ export default function StudentsPage() {
                 <tr key={s.id} style={{ opacity: s.is_active === false ? 0.5 : 1 }}>
                   <td style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>{i + 1}</td>
                   <td>
-                    <Link to={`/students/${s.id}/edit`} style={{ color: s.is_active !== false ? 'var(--cyan)' : 'var(--text-muted)', textDecoration: 'none', fontWeight: 600 }}>
+                    <Link to={`/students/${s.id}/edit`} style={{ color: 'var(--primary)', textDecoration: 'none', fontWeight: 600 }}>
                       {s.name}
                     </Link>
                     {s.is_active === false && <span className="badge badge-secondary" style={{ marginLeft: '6px' }}>Inactive</span>}
@@ -234,9 +241,15 @@ export default function StudentsPage() {
                     <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                       {s.is_active !== false && (
                         <>
-                          <button className="btn btn-warning btn-sm" onClick={() => setActivityStudent(s)} title="Add Activity">📔</button>
-                          <Link to={`/students/${s.id}/report`} className="btn btn-info btn-sm" title="View Report">📊</Link>
-                          <a href={`tel:${s.parent_contact}`} className="btn btn-secondary btn-sm" title="Call Parent">📞</a>
+                          <button className="btn btn-warning btn-sm" onClick={() => setActivityStudent(s)} title="Add Activity">
+                            <Icon name="book" size={13} />
+                          </button>
+                          <Link to={`/students/${s.id}/report`} className="btn btn-info btn-sm" title="View Report">
+                            <Icon name="chart" size={13} />
+                          </Link>
+                          <a href={`tel:${s.parent_contact}`} className="btn btn-secondary btn-sm" title="Call Parent">
+                            <Icon name="phone" size={13} />
+                          </a>
                         </>
                       )}
                       <button
@@ -244,7 +257,9 @@ export default function StudentsPage() {
                         onClick={() => handleToggleActive(s)}
                         title={s.is_active !== false ? 'Deactivate' : 'Reactivate'}
                       >
-                        {s.is_active !== false ? '🚫' : '✅'}
+                        {s.is_active !== false
+                          ? <Icon name="close" size={13} />
+                          : <Icon name="check" size={13} />}
                       </button>
                     </div>
                   </td>
@@ -265,8 +280,8 @@ export default function StudentsPage() {
           <div className="row">
             {/* Birthdays */}
             <div className="col-3">
-              <div className="stat-card" style={{ cursor: 'pointer', background: 'rgba(6,182,212,0.15)', borderColor: 'rgba(6,182,212,0.4)' }} onClick={() => setShowBirthday(true)}>
-                <div style={{ fontSize: '2rem', marginBottom: '4px' }}>🎂</div>
+              <div className="stat-card" style={{ cursor: 'pointer' }} onClick={() => setShowBirthday(true)}>
+                <Icon name="cake" size={28} style={{ color: 'var(--info)', marginBottom: '4px' }} />
                 <div className="stat-card__number text-info">{birthdayCount}</div>
                 <div className="stat-card__label">Birthdays this Month</div>
                 <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>Click to view</div>

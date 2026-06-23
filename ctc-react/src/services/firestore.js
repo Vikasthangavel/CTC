@@ -43,10 +43,35 @@ export async function toggleStudentActive(id, currentStatus) {
   await updateDoc(doc(db, 'students', id), { is_active: !currentStatus });
 }
 
+function normalizePhone(raw) {
+  // Strip spaces, dashes, dots
+  let p = String(raw || '').replace(/[\s\-\.]/g, '');
+  // Remove leading +91 or 0091 (India) country code
+  if (p.startsWith('+91')) p = p.slice(3);
+  else if (p.startsWith('0091')) p = p.slice(4);
+  // Remove leading 0
+  if (p.startsWith('0') && p.length === 11) p = p.slice(1);
+  return p;
+}
+
 export async function getStudentByParentPhone(phone) {
-  const q = query(collection(db, 'students'), where('parent_contact', '==', phone));
-  const snap = await getDocs(q);
-  return snap2arr(snap);
+  const normalized = normalizePhone(phone);
+  // Try exact match first
+  const q1 = query(collection(db, 'students'), where('parent_contact', '==', phone));
+  const snap1 = await getDocs(q1);
+  if (!snap1.empty) return snap2arr(snap1);
+
+  // Try normalized (10-digit) match
+  if (normalized !== phone) {
+    const q2 = query(collection(db, 'students'), where('parent_contact', '==', normalized));
+    const snap2 = await getDocs(q2);
+    if (!snap2.empty) return snap2arr(snap2);
+  }
+
+  // Fallback: load all and filter client-side (handles any format mismatch)
+  const allSnap = await getDocs(collection(db, 'students'));
+  const all = snap2arr(allSnap);
+  return all.filter(s => normalizePhone(s.parent_contact) === normalized);
 }
 
 // ─── ATTENDANCE ─────────────────────────────────────────────

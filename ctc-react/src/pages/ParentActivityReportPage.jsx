@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getStudent, getActivitiesByMonth } from '../services/firestore';
 import Loader from '../components/Loader';
+import Icon from '../components/Icon';
 
 export default function ParentActivityReportPage() {
   const { studentId } = useParams();
@@ -22,7 +23,9 @@ export default function ParentActivityReportPage() {
     setLoading(true);
     try {
       const s = await getStudent(studentId);
-      if (!s || s.parent_contact !== parentPhone) {
+      // Normalize for comparison (strip spaces, country code)
+      const norm = (p) => String(p || '').replace(/[\s\-\.]/g, '').replace(/^(\+91|0091)/, '').replace(/^0(\d{10})$/, '$1');
+      if (!s || norm(s.parent_contact) !== norm(parentPhone)) {
         setAccessDenied(true);
         setLoading(false);
         return;
@@ -43,17 +46,17 @@ export default function ParentActivityReportPage() {
 
   if (accessDenied) return (
     <div className="card" style={{ textAlign: 'center', padding: '40px' }}>
-      <div style={{ fontSize: '2rem', marginBottom: '8px' }}>🚫</div>
+      <Icon name="close" size={36} style={{ color: 'var(--danger)', display: 'block', margin: '0 auto 12px', opacity: 0.6 }} />
       <h4>Access Denied</h4>
-      <p style={{ color: 'var(--text-muted)' }}>You don't have permission to view this report.</p>
-      <button className="btn btn-secondary" onClick={() => navigate('/parent')}>← Go Back</button>
+      <p style={{ color: 'var(--text-muted)', marginBottom: '16px' }}>You don't have permission to view this report.</p>
+      <button className="btn btn-secondary" onClick={() => navigate('/parent')} style={{ gap: '4px' }}><Icon name="arrowLeft" size={14} /> Go Back</button>
     </div>
   );
 
   return (
     <>
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-        <button className="btn btn-secondary btn-sm" onClick={() => navigate('/parent')}>← Back</button>
+        <button className="btn btn-secondary btn-sm" onClick={() => navigate('/parent')} style={{ gap: '4px' }}><Icon name="arrowLeft" size={14} /> Back</button>
         <h2 style={{ margin: 0 }}>Activity Report: {student?.name}</h2>
       </div>
 
@@ -68,7 +71,7 @@ export default function ParentActivityReportPage() {
 
       {activities.length === 0 ? (
         <div className="card" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
-          <div style={{ fontSize: '2rem', marginBottom: '8px' }}>📔</div>
+          <Icon name="book" size={36} style={{ opacity: 0.3, display: 'block', margin: '0 auto 8px' }} />
           No activities logged for this month.
         </div>
       ) : (

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getStudentByParentPhone } from '../services/firestore';
 import Loader from '../components/Loader';
+import Icon from '../components/Icon';
 
 const ADMIN_PHONE = '9524439288';
 
@@ -63,10 +64,12 @@ export default function LoginPage() {
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh' }}>
         <div style={{ width: '100%', maxWidth: '420px' }}>
           <div className="card">
-            <div className="card-header" style={{ textAlign: 'center', padding: '24px' }}>
-              <div style={{ fontSize: '2.5rem', marginBottom: '8px' }}>⚡</div>
+            <div className="card-header" style={{ textAlign: 'center', padding: '24px', borderRadius: '12px 12px 0 0' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px', color: 'var(--primary)' }}>
+                <Icon name="lightning" size={32} />
+              </div>
               <h4 style={{ margin: 0 }}>Welcome Back</h4>
-              <p style={{ color: 'rgba(255,255,255,0.5)', margin: '4px 0 0', fontSize: '0.85rem' }}>
+              <p style={{ color: 'var(--text-muted)', margin: '4px 0 0', fontSize: '0.85rem' }}>
                 Please enter your registered details
               </p>
             </div>
@@ -97,8 +100,8 @@ export default function LoginPage() {
                   </div>
                 )}
 
-                <button type="submit" className="btn btn-primary btn-block btn-lg" style={{ marginTop: '8px' }}>
-                  {adminMode ? '🔐 Login as Admin' : '▶ Continue'}
+                <button type="submit" className="btn btn-primary btn-block btn-lg" style={{ marginTop: '8px', gap: '8px' }}>
+                  {adminMode ? <><Icon name="check" size={16} /> Login as Admin</> : 'Continue'}
                 </button>
 
                 {adminMode && (
