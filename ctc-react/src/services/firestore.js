@@ -159,9 +159,10 @@ export async function getFeesByMonth(monthYear) {
 }
 
 export async function getStudentFees(studentId) {
-  const q = query(collection(db, 'fees'), where('student_id', '==', studentId), orderBy('month_year', 'desc'));
+  // No orderBy to avoid composite index — sort client-side (YYYY-MM strings sort lexicographically)
+  const q = query(collection(db, 'fees'), where('student_id', '==', studentId));
   const snap = await getDocs(q);
-  return snap2arr(snap);
+  return snap2arr(snap).sort((a, b) => b.month_year.localeCompare(a.month_year));
 }
 
 export async function quickPay(studentId, monthYear, amount) {
@@ -188,26 +189,27 @@ export async function addActivity(studentId, activityDate, content) {
 }
 
 export async function getActivitiesByMonth(studentId, month) {
+  // No orderBy to avoid requiring a composite index — sort client-side
   const q = query(
     collection(db, 'activities'),
     where('student_id', '==', studentId),
     where('activity_date', '>=', month + '-01'),
-    where('activity_date', '<=', month + '-31'),
-    orderBy('activity_date', 'desc')
+    where('activity_date', '<=', month + '-31')
   );
   const snap = await getDocs(q);
-  return snap2arr(snap);
+  return snap2arr(snap).sort((a, b) => b.activity_date.localeCompare(a.activity_date));
 }
 
 export async function getRecentActivities(studentId, limitN = 2) {
+  // No orderBy to avoid requiring a composite Firestore index — sort client-side
   const q = query(
     collection(db, 'activities'),
-    where('student_id', '==', studentId),
-    orderBy('activity_date', 'desc'),
-    limit(limitN)
+    where('student_id', '==', studentId)
   );
   const snap = await getDocs(q);
-  return snap2arr(snap);
+  return snap2arr(snap)
+    .sort((a, b) => b.activity_date.localeCompare(a.activity_date))
+    .slice(0, limitN);
 }
 
 export async function deleteActivity(id) {
@@ -264,4 +266,70 @@ export async function getAllParentReports() {
   const q = query(collection(db, 'parent_reports'), orderBy('report_date', 'desc'));
   const snap = await getDocs(q);
   return snap2arr(snap);
+}
+
+// ─── PUNCH IN / PUNCH OUT ─────────────────────────────────────────────
+// Doc ID = "{date}_{studentId}" for easy keyed lookup without composite indexes
+
+function punchDocId(date, studentId) {
+  return `${date}_${studentId}`;
+}
+
+function nowTimeStr() {
+  return new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+}
+
+export async function punchIn(studentId, date) {
+  const ref = doc(db, 'punches', punchDocId(date, studentId));
+  await setDoc(ref, {
+    student_id: studentId,
+    date,
+    punch_in: nowTimeStr(),
+    punch_out: null,
+    updated_at: serverTimestamp(),
+  }, { merge: true });
+}
+
+export async function punchOut(studentId, date) {
+  const ref = doc(db, 'punches', punchDocId(date, studentId));
+  await updateDoc(ref, {
+    punch_out: nowTimeStr(),
+    updated_at: serverTimestamp(),
+  });
+}
+
+export async function resetPunch(studentId, date) {
+  const ref = doc(db, 'punches', punchDocId(date, studentId));
+  await setDoc(ref, {
+    student_id: studentId,
+    date,
+    punch_in: null,
+    punch_out: null,
+    updated_at: serverTimestamp(),
+  });
+}
+
+export async function getPunchRecord(studentId, date) {
+  const ref = doc(db, 'punches', punchDocId(date, studentId));
+  const snap = await getDoc(ref);
+  return snap.exists() ? { id: snap.id, ...snap.data() } : null;
+}
+
+// Get all punch records for a given date (for admin attendance view)
+export async function getPunchesByDate(date) {
+  const q = query(collection(db, 'punches'), where('date', '==', date));
+  const snap = await getDocs(q);
+  const map = {};
+  snap.docs.forEach(d => { map[d.data().student_id] = { id: d.id, ...d.data() }; });
+  return map;
+}
+
+// Get recent punch records for a student (for parent view — client-side sort)
+export async function getStudentPunches(studentId, limitN = 5) {
+  const q = query(collection(db, 'punches'), where('student_id', '==', studentId));
+  const snap = await getDocs(q);
+  return snap2arr(snap)
+    .filter(p => p.punch_in)
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .slice(0, limitN);
 }

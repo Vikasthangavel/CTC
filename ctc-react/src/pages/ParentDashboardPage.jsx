@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   getStudentByParentPhone, getStudentAttendanceStats,
-  getStudentFees, getRecentActivities, getInstructionsForParent, submitParentReport
+  getStudentFees, getRecentActivities, getInstructionsForParent,
+  submitParentReport, getPunchRecord
 } from '../services/firestore';
 import Loader from '../components/Loader';
 import Icon from '../components/Icon';
@@ -24,14 +25,16 @@ export default function ParentDashboardPage() {
     setLoading(true);
     try {
       const students = await getStudentByParentPhone(parentPhone);
+      const todayDate = new Date().toISOString().split('T')[0];
 
       const childData = await Promise.all(students.map(async s => {
-        const [stats, fees, activities] = await Promise.all([
+        const [stats, fees, activities, todayPunch] = await Promise.all([
           getStudentAttendanceStats(s.id),
           getStudentFees(s.id),
           getRecentActivities(s.id, 2),
+          getPunchRecord(s.id, todayDate),
         ]);
-        return { student: s, attendance_stats: stats, fees: fees.slice(0, 5), activities };
+        return { student: s, attendance_stats: stats, fees: fees.slice(0, 5), activities, todayPunch };
       }));
 
       const studentIds = students.map(s => s.id);
@@ -113,7 +116,7 @@ export default function ParentDashboardPage() {
       )}
 
       {/* Children */}
-      {childrenData.map(({ student, attendance_stats, fees, activities }) => (
+      {childrenData.map(({ student, attendance_stats, fees, activities, todayPunch }) => (
         <div key={student.id} className="card mb-4">
           <div className="card-header" style={{ background: 'var(--primary-light)', borderBottom: '1px solid var(--border)' }}>
             <h4 style={{ margin: 0, fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -124,7 +127,36 @@ export default function ParentDashboardPage() {
           </div>
           <div className="card-body">
 
-            {/* Attendance */}
+            {/* Today's Punch Timing */}
+            <div className="section-title" style={{ marginBottom: '10px' }}>
+              <Icon name="attend" size={13} style={{ marginRight: '4px' }} /> Today's Timing
+            </div>
+            {todayPunch && todayPunch.punch_in ? (
+              <div style={{
+                display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '16px',
+                background: 'var(--surface-2)', borderRadius: 'var(--radius)', padding: '12px 14px',
+                border: '1px solid var(--border)'
+              }}>
+                <div style={{ flex: 1, minWidth: '100px' }}>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '3px' }}>Punch In</div>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <Icon name="arrowRight" size={16} /> {todayPunch.punch_in}
+                  </div>
+                </div>
+                <div style={{ flex: 1, minWidth: '100px' }}>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '3px' }}>Punch Out</div>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 700, color: todayPunch.punch_out ? 'var(--danger)' : 'var(--text-light)', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <Icon name="arrowLeft" size={16} /> {todayPunch.punch_out || 'Not yet'}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '16px', padding: '10px 14px', background: 'var(--surface-2)', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
+                No punch record for today.
+              </div>
+            )}
+
+            {/* Attendance Stats */}
             <div className="section-title">
               <Icon name="chart" size={13} style={{ marginRight: '4px' }} /> Attendance
             </div>

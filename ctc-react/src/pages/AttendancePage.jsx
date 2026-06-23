@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
-import { getStudents, getAttendanceByDate, saveBulkAttendance, getMonthlyAttendanceStats } from '../services/firestore';
+import {
+  getStudents, getAttendanceByDate, saveBulkAttendance,
+  getMonthlyAttendanceStats, getPunchesByDate, punchIn, punchOut, resetPunch
+} from '../services/firestore';
 import Loader from '../components/Loader';
 import Icon from '../components/Icon';
 import { useToast } from '../components/Toast';
@@ -13,13 +16,15 @@ export default function AttendancePage() {
   const [selectedDate, setSelectedDate] = useState(today);
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
   const [attendance, setAttendance] = useState({});
+  const [punches, setPunches] = useState({});   // { studentId: { punch_in, punch_out } }
   const [monthlyStats, setMonthlyStats] = useState([]);
   const [view, setView] = useState('mark');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [punchingId, setPunchingId] = useState(null); // which student is being punched
 
   useEffect(() => { loadStudents(); }, []);
-  useEffect(() => { if (students.length > 0) loadAttendance(); }, [selectedDate, students]);
+  useEffect(() => { if (students.length > 0) { loadAttendance(); loadPunches(); } }, [selectedDate, students]);
   useEffect(() => { if (students.length > 0) loadMonthlyStats(); }, [selectedMonth, students]);
 
   async function loadStudents() {
@@ -33,6 +38,11 @@ export default function AttendancePage() {
     const simplified = {};
     Object.entries(map).forEach(([sid, rec]) => { simplified[sid] = rec.status; });
     setAttendance(simplified);
+  }
+
+  async function loadPunches() {
+    const map = await getPunchesByDate(selectedDate);
+    setPunches(map);
   }
 
   async function loadMonthlyStats() {
@@ -55,9 +65,45 @@ export default function AttendancePage() {
     } finally { setSaving(false); }
   }
 
+  async function handlePunchIn(studentId) {
+    setPunchingId(studentId);
+    try {
+      await punchIn(studentId, selectedDate);
+      showToast('Punched In!', 'success');
+      // Auto-mark present when punching in
+      setAttendance(prev => ({ ...prev, [studentId]: 'Present' }));
+      await loadPunches();
+    } catch {
+      showToast('Failed to punch in', 'danger');
+    } finally { setPunchingId(null); }
+  }
+
+  async function handlePunchOut(studentId) {
+    setPunchingId(studentId);
+    try {
+      await punchOut(studentId, selectedDate);
+      showToast('Punched Out!', 'success');
+      await loadPunches();
+    } catch {
+      showToast('Failed to punch out', 'danger');
+    } finally { setPunchingId(null); }
+  }
+
+  async function handleResetPunch(studentId) {
+    if (!confirm('Reset punch record for this student?')) return;
+    setPunchingId(studentId);
+    try {
+      await resetPunch(studentId, selectedDate);
+      showToast('Punch reset', 'success');
+      await loadPunches();
+    } catch {
+      showToast('Failed to reset', 'danger');
+    } finally { setPunchingId(null); }
+  }
+
   const dailyStats = {
-    present: Object.values(attendance).filter(s => s === 'Present').length,
-    absent:  Object.values(attendance).filter(s => s === 'Absent').length,
+    present:   Object.values(attendance).filter(s => s === 'Present').length,
+    absent:    Object.values(attendance).filter(s => s === 'Absent').length,
     notMarked: students.length - Object.keys(attendance).length,
   };
 
@@ -73,7 +119,7 @@ export default function AttendancePage() {
         </button>
       </div>
 
-      {/* Monthly Report View */}
+      {/* ── Monthly Report ── */}
       {view === 'monthly' && (
         <div className="card mb-4">
           <div className="card-header"><Icon name="chart" size={16} /> Monthly Statistics</div>
@@ -86,11 +132,7 @@ export default function AttendancePage() {
               <table>
                 <thead>
                   <tr>
-                    <th>Student Name</th>
-                    <th>Grade</th>
-                    <th>Present</th>
-                    <th>Total</th>
-                    <th>Attendance %</th>
+                    <th>Student</th><th>Grade</th><th>Present</th><th>Total</th><th>%</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -106,7 +148,7 @@ export default function AttendancePage() {
                     </tr>
                   ))}
                   {monthlyStats.length === 0 && (
-                    <tr><td colSpan="5" style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '24px' }}>No attendance data for this month.</td></tr>
+                    <tr><td colSpan="5" style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '24px' }}>No data for this month.</td></tr>
                   )}
                 </tbody>
               </table>
@@ -115,7 +157,7 @@ export default function AttendancePage() {
         </div>
       )}
 
-      {/* Mark Attendance View */}
+      {/* ── Mark Attendance + Punch ── */}
       {view === 'mark' && (
         <>
           <div className="form-group" style={{ maxWidth: '200px', marginBottom: '20px' }}>
@@ -126,9 +168,9 @@ export default function AttendancePage() {
           {/* Daily Stats */}
           <div className="row mb-4" style={{ gap: '10px' }}>
             {[
-              { label: 'Present',    value: dailyStats.present,    color: 'var(--success)' },
-              { label: 'Absent',     value: dailyStats.absent,     color: 'var(--danger)' },
-              { label: 'Not Marked', value: dailyStats.notMarked,  color: 'var(--text-muted)' },
+              { label: 'Present',    value: dailyStats.present,   color: 'var(--success)' },
+              { label: 'Absent',     value: dailyStats.absent,    color: 'var(--danger)' },
+              { label: 'Not Marked', value: dailyStats.notMarked, color: 'var(--text-muted)' },
             ].map(({ label, value, color }) => (
               <div key={label} className="col stat-card" style={{ flex: '1' }}>
                 <div className="stat-card__number" style={{ color }}>{value}</div>
@@ -139,7 +181,7 @@ export default function AttendancePage() {
 
           {/* Save Button */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', position: 'sticky', top: '64px', zIndex: 100, background: 'var(--bg)', padding: '8px 0' }}>
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Select status for all students</span>
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Mark attendance &amp; punch times</span>
             <button className="btn btn-primary" onClick={handleSave} disabled={saving} style={{ gap: '8px' }}>
               <Icon name="save" size={14} />
               {saving ? 'Saving...' : 'Save Attendance'}
@@ -150,12 +192,20 @@ export default function AttendancePage() {
           <div className="row" style={{ gap: '12px' }}>
             {students.map(s => {
               const status = attendance[s.id];
+              const punch = punches[s.id] || {};
+              const hasPunchIn = !!punch.punch_in;
+              const hasPunchOut = !!punch.punch_out;
+              const isPunching = punchingId === s.id;
+
               return (
                 <div key={s.id} className="card" style={{
                   flex: '0 0 calc(50% - 6px)',
-                  borderColor: status === 'Present' ? 'rgba(22,163,74,0.4)' : status === 'Absent' ? 'rgba(220,38,38,0.4)' : 'var(--border)'
+                  borderColor: status === 'Present' ? 'rgba(22,163,74,0.4)' : status === 'Absent' ? 'rgba(220,38,38,0.4)' : 'var(--border)',
+                  transition: 'border-color 0.2s',
                 }}>
                   <div className="card-body" style={{ padding: '14px' }}>
+
+                    {/* Name + Status */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '10px' }}>
                       <div>
                         <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>{s.name}</div>
@@ -165,22 +215,78 @@ export default function AttendancePage() {
                         {status || 'Pending'}
                       </span>
                     </div>
-                    <div style={{ display: 'flex', gap: '0' }}>
+
+                    {/* Present / Absent */}
+                    <div style={{ display: 'flex', gap: '0', marginBottom: '10px' }}>
                       <button
                         className={`btn btn-sm ${status === 'Present' ? 'btn-success' : 'btn-secondary'}`}
                         style={{ flex: 1, borderRadius: '8px 0 0 8px', gap: '4px' }}
                         onClick={() => setStatus(s.id, 'Present')}
-                      >
-                        <Icon name="check" size={13} /> Present
-                      </button>
+                      ><Icon name="check" size={13} /> Present</button>
                       <button
                         className={`btn btn-sm ${status === 'Absent' ? 'btn-danger' : 'btn-secondary'}`}
                         style={{ flex: 1, borderRadius: '0 8px 8px 0', gap: '4px' }}
                         onClick={() => setStatus(s.id, 'Absent')}
-                      >
-                        <Icon name="close" size={13} /> Absent
-                      </button>
+                      ><Icon name="close" size={13} /> Absent</button>
                     </div>
+
+                    {/* Punch In / Out */}
+                    <div style={{ borderTop: '1px solid var(--border)', paddingTop: '10px' }}>
+                      {!hasPunchIn ? (
+                        /* No punch yet */
+                        <button
+                          className="btn btn-info btn-sm btn-block"
+                          style={{ gap: '6px' }}
+                          onClick={() => handlePunchIn(s.id)}
+                          disabled={isPunching}
+                        >
+                          <Icon name="arrowRight" size={13} />
+                          {isPunching ? 'Punching...' : 'Punch In'}
+                        </button>
+                      ) : (
+                        /* Has punch in */
+                        <div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                            <div style={{ fontSize: '0.78rem' }}>
+                              <span style={{ color: 'var(--success)', fontWeight: 600 }}>
+                                <Icon name="arrowRight" size={11} style={{ verticalAlign: 'middle' }} /> In: {punch.punch_in}
+                              </span>
+                              {hasPunchOut && (
+                                <span style={{ color: 'var(--danger)', fontWeight: 600, marginLeft: '10px' }}>
+                                  <Icon name="arrowLeft" size={11} style={{ verticalAlign: 'middle' }} /> Out: {punch.punch_out}
+                                </span>
+                              )}
+                            </div>
+                            <button
+                              className="btn btn-secondary btn-sm"
+                              style={{ padding: '2px 6px', fontSize: '0.68rem' }}
+                              onClick={() => handleResetPunch(s.id)}
+                              disabled={isPunching}
+                              title="Reset punch"
+                            >
+                              Reset
+                            </button>
+                          </div>
+                          {!hasPunchOut && (
+                            <button
+                              className="btn btn-danger btn-sm btn-block"
+                              style={{ gap: '6px' }}
+                              onClick={() => handlePunchOut(s.id)}
+                              disabled={isPunching}
+                            >
+                              <Icon name="arrowLeft" size={13} />
+                              {isPunching ? 'Punching...' : 'Punch Out'}
+                            </button>
+                          )}
+                          {hasPunchOut && (
+                            <div style={{ textAlign: 'center', fontSize: '0.75rem', color: 'var(--text-muted)', padding: '2px 0' }}>
+                              Session complete
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
                   </div>
                 </div>
               );
@@ -188,7 +294,9 @@ export default function AttendancePage() {
           </div>
 
           {students.length === 0 && (
-            <div className="card" style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted)' }}>No active students found.</div>
+            <div className="card" style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted)' }}>
+              No active students found.
+            </div>
           )}
         </>
       )}
