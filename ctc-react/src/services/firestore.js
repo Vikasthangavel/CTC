@@ -3,7 +3,7 @@
 
 import {
   collection, doc, addDoc, updateDoc, deleteDoc, getDocs,
-  getDoc, query, where, orderBy, limit, serverTimestamp, writeBatch
+  getDoc, setDoc, query, where, orderBy, limit, serverTimestamp, writeBatch
 } from 'firebase/firestore';
 import { db } from '../firebase';
 
@@ -51,50 +51,75 @@ export async function getStudentByParentPhone(phone) {
 
 // ─── ATTENDANCE ─────────────────────────────────────────────
 export async function getAttendanceByDate(date) {
-  const q = query(collection(db, 'attendance'), where('date', '==', date));
-  const snap = await getDocs(q);
+  const ref = doc(db, 'attendance', date);
+  const snap = await getDoc(ref);
   const map = {};
-  snap.docs.forEach(d => { map[d.data().student_id] = { id: d.id, ...d.data() }; });
+  if (snap.exists()) {
+    const data = snap.data();
+    const statuses = data.statuses || {};
+    Object.entries(statuses).forEach(([studentId, status]) => {
+      map[studentId] = {
+        id: snap.id,
+        student_id: studentId,
+        date: snap.id,
+        status: status
+      };
+    });
+  }
   return map;
 }
 
 export async function saveBulkAttendance(date, statusMap) {
   // statusMap: { student_id: 'Present'|'Absent' }
-  const existing = await getAttendanceByDate(date);
-  const batch = writeBatch(db);
-
-  for (const [studentId, status] of Object.entries(statusMap)) {
-    if (existing[studentId]) {
-      batch.update(doc(db, 'attendance', existing[studentId].id), { status });
-    } else {
-      const ref = doc(collection(db, 'attendance'));
-      batch.set(ref, { student_id: studentId, date, status });
-    }
-  }
-  await batch.commit();
+  const ref = doc(db, 'attendance', date);
+  await setDoc(ref, {
+    date: date,
+    statuses: statusMap
+  }, { merge: true });
 }
 
 export async function getMonthlyAttendanceStats(month, students) {
   // month = 'YYYY-MM'
-  const q = query(collection(db, 'attendance'), where('date', '>=', month + '-01'), where('date', '<=', month + '-31'));
+  const q = query(
+    collection(db, 'attendance'),
+    where('date', '>=', month + '-01'),
+    where('date', '<=', month + '-31')
+  );
   const snap = await getDocs(q);
-  const records = snap2arr(snap);
+  const dateDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
   return students.map(s => {
-    const sRecords = records.filter(r => r.student_id === s.id);
-    const total = sRecords.length;
-    const present = sRecords.filter(r => r.status === 'Present').length;
+    let total = 0;
+    let present = 0;
+    for (const doc of dateDocs) {
+      const statuses = doc.statuses || {};
+      if (statuses[s.id] !== undefined) {
+        total++;
+        if (statuses[s.id] === 'Present') {
+          present++;
+        }
+      }
+    }
     const percentage = total > 0 ? Math.round((present / total) * 1000) / 10 : 0;
     return { name: s.name, grade: s.grade, total, present, percentage };
   });
 }
 
 export async function getStudentAttendanceStats(studentId) {
-  const q = query(collection(db, 'attendance'), where('student_id', '==', studentId));
-  const snap = await getDocs(q);
-  const records = snap2arr(snap);
-  const total = records.length;
-  const present = records.filter(r => r.status === 'Present').length;
+  const col = collection(db, 'attendance');
+  const snap = await getDocs(col);
+  let total = 0;
+  let present = 0;
+  snap.docs.forEach(d => {
+    const data = d.data();
+    const statuses = data.statuses || {};
+    if (statuses[studentId] !== undefined) {
+      total++;
+      if (statuses[studentId] === 'Present') {
+        present++;
+      }
+    }
+  });
   const percentage = total > 0 ? Math.round((present / total) * 1000) / 10 : 0;
   return { total, present, percentage };
 }

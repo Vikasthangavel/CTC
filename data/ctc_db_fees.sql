@@ -1,0 +1,57 @@
+-- MySQL dump 10.13  Distrib 8.0.40, for Win64 (x86_64)
+--
+-- Host: 165.99.52.33    Database: ctc_db
+-- ------------------------------------------------------
+-- Server version	8.0.42
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!50503 SET NAMES utf8 */;
+/*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
+/*!40103 SET TIME_ZONE='+00:00' */;
+/*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
+/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
+/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
+/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
+
+--
+-- Table structure for table `fees`
+--
+
+DROP TABLE IF EXISTS `fees`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `fees` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `student_id` int NOT NULL,
+  `month_year` varchar(20) NOT NULL,
+  `amount` float DEFAULT NULL,
+  `status` varchar(50) NOT NULL DEFAULT 'Unpaid',
+  `payment_date` varchar(20) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `student_id` (`student_id`),
+  CONSTRAINT `fees_ibfk_1` FOREIGN KEY (`student_id`) REFERENCES `students` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=32 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `fees`
+--
+
+LOCK TABLES `fees` WRITE;
+/*!40000 ALTER TABLE `fees` DISABLE KEYS */;
+INSERT INTO `fees` VALUES (1,4,'2026-01',350,'Paid','2026-01-12'),(2,5,'2026-01',350,'Paid','2026-01-12'),(3,6,'2026-01',700,'Paid','2026-01-12'),(4,7,'2026-01',250,'Paid','2026-01-12'),(5,8,'2026-01',300,'Paid','2026-01-12'),(6,9,'2026-01',500,'Paid','2026-01-12'),(7,10,'2026-01',500,'Paid','2026-01-12'),(8,11,'2026-01',700,'Paid','2026-01-12'),(9,12,'2026-01',400,'Paid','2026-01-12'),(10,13,'2026-01',250,'Paid','2026-01-12'),(11,14,'2026-01',600,'Paid','2026-01-12'),(12,15,'2026-01',250,'Paid','2026-01-12'),(13,16,'2026-01',600,'Paid','2026-01-12'),(14,17,'2026-01',250,'Paid','2026-01-12'),(15,18,'2026-01',250,'Paid','2026-01-12'),(16,19,'2026-01',250,'Paid','2026-01-12'),(17,4,'2026-02',350,'Paid','2026-02-04'),(18,5,'2026-02',350,'Paid','2026-02-04'),(19,8,'2026-02',300,'Paid','2026-02-04'),(20,12,'2026-02',400,'Paid','2026-02-04'),(21,15,'2026-02',250,'Paid','2026-02-04'),(22,6,'2026-02',700,'Paid','2026-02-05'),(23,9,'2026-02',500,'Paid','2026-02-05'),(24,11,'2026-02',700,'Paid','2026-02-05'),(25,7,'2026-02',250,'Paid','2026-02-11'),(26,10,'2026-02',500,'Paid','2026-02-11'),(27,13,'2026-02',250,'Paid','2026-02-11'),(28,14,'2026-02',600,'Paid','2026-02-11'),(29,17,'2026-02',250,'Paid','2026-02-11'),(30,19,'2026-02',250,'Paid','2026-02-11'),(31,18,'2026-02',250,'Paid','2026-02-11');
+/*!40000 ALTER TABLE `fees` ENABLE KEYS */;
+UNLOCK TABLES;
+/*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
+
+/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
+/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
+/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
+
+-- Dump completed on 2026-06-23 22:04:00
