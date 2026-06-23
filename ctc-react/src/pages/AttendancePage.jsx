@@ -188,9 +188,9 @@ export default function AttendancePage() {
             </button>
           </div>
 
-          {/* Student Cards */}
-          <div className="row" style={{ gap: '12px' }}>
-            {students.map(s => {
+          {/* Student List */}
+          <div className="card" style={{ overflow: 'hidden' }}>
+            {students.map((s, idx) => {
               const status = attendance[s.id];
               const punch = punches[s.id] || {};
               const hasPunchIn = !!punch.punch_in;
@@ -198,96 +198,87 @@ export default function AttendancePage() {
               const isPunching = punchingId === s.id;
 
               return (
-                <div key={s.id} className="card" style={{
-                  flex: '0 0 calc(50% - 6px)',
-                  borderColor: status === 'Present' ? 'rgba(22,163,74,0.4)' : status === 'Absent' ? 'rgba(220,38,38,0.4)' : 'var(--border)',
+                <div key={s.id} style={{
+                  borderBottom: idx < students.length - 1 ? '1px solid var(--border)' : 'none',
+                  borderLeft: `4px solid ${status === 'Present' ? 'var(--success)' : status === 'Absent' ? 'var(--danger)' : 'transparent'}`,
+                  padding: '14px 14px 14px 12px',
                   transition: 'border-color 0.2s',
                 }}>
-                  <div className="card-body" style={{ padding: '14px' }}>
 
-                    {/* Name + Status */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '10px' }}>
-                      <div>
-                        <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>{s.name}</div>
-                        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Grade: {s.grade}</div>
-                      </div>
-                      <span className={`badge ${status === 'Present' ? 'badge-success' : status === 'Absent' ? 'badge-danger' : 'badge-secondary'}`}>
-                        {status || 'Pending'}
-                      </span>
+                  {/* Row 1: Name + badge + present/absent */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px', flexWrap: 'wrap' }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>{s.name}</span>
+                      <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginLeft: '8px' }}>Gr. {s.grade}</span>
                     </div>
-
-                    {/* Present / Absent */}
-                    <div style={{ display: 'flex', gap: '0', marginBottom: '10px' }}>
+                    <span className={`badge ${status === 'Present' ? 'badge-success' : status === 'Absent' ? 'badge-danger' : 'badge-secondary'}`}>
+                      {status || 'Pending'}
+                    </span>
+                    {/* Inline Present/Absent toggle */}
+                    <div style={{ display: 'flex', gap: '0' }}>
                       <button
                         className={`btn btn-sm ${status === 'Present' ? 'btn-success' : 'btn-secondary'}`}
-                        style={{ flex: 1, borderRadius: '8px 0 0 8px', gap: '4px' }}
+                        style={{ borderRadius: '8px 0 0 8px', padding: '4px 12px', gap: '4px', fontSize: '0.8rem' }}
                         onClick={() => setStatus(s.id, 'Present')}
-                      ><Icon name="check" size={13} /> Present</button>
+                      ><Icon name="check" size={12} /> P</button>
                       <button
                         className={`btn btn-sm ${status === 'Absent' ? 'btn-danger' : 'btn-secondary'}`}
-                        style={{ flex: 1, borderRadius: '0 8px 8px 0', gap: '4px' }}
+                        style={{ borderRadius: '0 8px 8px 0', padding: '4px 12px', gap: '4px', fontSize: '0.8rem' }}
                         onClick={() => setStatus(s.id, 'Absent')}
-                      ><Icon name="close" size={13} /> Absent</button>
+                      ><Icon name="close" size={12} /> A</button>
                     </div>
-
-                    {/* Punch In / Out */}
-                    <div style={{ borderTop: '1px solid var(--border)', paddingTop: '10px' }}>
-                      {!hasPunchIn ? (
-                        /* No punch yet */
-                        <button
-                          className="btn btn-info btn-sm btn-block"
-                          style={{ gap: '6px' }}
-                          onClick={() => handlePunchIn(s.id)}
-                          disabled={isPunching}
-                        >
-                          <Icon name="arrowRight" size={13} />
-                          {isPunching ? 'Punching...' : 'Punch In'}
-                        </button>
-                      ) : (
-                        /* Has punch in */
-                        <div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                            <div style={{ fontSize: '0.78rem' }}>
-                              <span style={{ color: 'var(--success)', fontWeight: 600 }}>
-                                <Icon name="arrowRight" size={11} style={{ verticalAlign: 'middle' }} /> In: {punch.punch_in}
-                              </span>
-                              {hasPunchOut && (
-                                <span style={{ color: 'var(--danger)', fontWeight: 600, marginLeft: '10px' }}>
-                                  <Icon name="arrowLeft" size={11} style={{ verticalAlign: 'middle' }} /> Out: {punch.punch_out}
-                                </span>
-                              )}
-                            </div>
-                            <button
-                              className="btn btn-secondary btn-sm"
-                              style={{ padding: '2px 6px', fontSize: '0.68rem' }}
-                              onClick={() => handleResetPunch(s.id)}
-                              disabled={isPunching}
-                              title="Reset punch"
-                            >
-                              Reset
-                            </button>
-                          </div>
-                          {!hasPunchOut && (
-                            <button
-                              className="btn btn-danger btn-sm btn-block"
-                              style={{ gap: '6px' }}
-                              onClick={() => handlePunchOut(s.id)}
-                              disabled={isPunching}
-                            >
-                              <Icon name="arrowLeft" size={13} />
-                              {isPunching ? 'Punching...' : 'Punch Out'}
-                            </button>
-                          )}
-                          {hasPunchOut && (
-                            <div style={{ textAlign: 'center', fontSize: '0.75rem', color: 'var(--text-muted)', padding: '2px 0' }}>
-                              Session complete
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
                   </div>
+
+                  {/* Row 2: Punch section */}
+                  {!hasPunchIn ? (
+                    <button
+                      className="btn btn-info btn-sm"
+                      style={{ gap: '6px', width: '100%' }}
+                      onClick={() => handlePunchIn(s.id)}
+                      disabled={isPunching}
+                    >
+                      <Icon name="arrowRight" size={13} />
+                      {isPunching ? 'Punching...' : 'Punch In'}
+                    </button>
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      {/* Times */}
+                      <div style={{ flex: 1, display: 'flex', gap: '12px', flexWrap: 'wrap', fontSize: '0.82rem' }}>
+                        <span style={{ color: 'var(--success)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '3px' }}>
+                          <Icon name="arrowRight" size={12} /> {punch.punch_in}
+                        </span>
+                        {hasPunchOut && (
+                          <span style={{ color: 'var(--danger)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '3px' }}>
+                            <Icon name="arrowLeft" size={12} /> {punch.punch_out}
+                          </span>
+                        )}
+                        {!hasPunchOut && (
+                          <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Not punched out</span>
+                        )}
+                      </div>
+                      {/* Action buttons */}
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        {!hasPunchOut && (
+                          <button
+                            className="btn btn-danger btn-sm"
+                            style={{ gap: '4px' }}
+                            onClick={() => handlePunchOut(s.id)}
+                            disabled={isPunching}
+                          >
+                            <Icon name="arrowLeft" size={12} />
+                            {isPunching ? '...' : 'Out'}
+                          </button>
+                        )}
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          style={{ padding: '4px 8px', fontSize: '0.72rem' }}
+                          onClick={() => handleResetPunch(s.id)}
+                          disabled={isPunching}
+                        >Reset</button>
+                      </div>
+                    </div>
+                  )}
+
                 </div>
               );
             })}
