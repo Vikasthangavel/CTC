@@ -421,3 +421,73 @@ export async function getStudentPunches(studentId, limitN = 5) {
     .sort((a, b) => b.date.localeCompare(a.date))
     .slice(0, limitN);
 }
+
+// ─── ANALYTICS ─────────────────────────────────────────────
+export async function getAnalyticsData() {
+  // 1. Fetch all fees
+  const feesSnap = await getDocs(collection(db, 'fees'));
+  const feesMap = {};
+  feesSnap.docs.forEach(d => {
+    const data = d.data();
+    if (data.status === 'Paid') {
+      const month = data.month_year;
+      const amount = Number(data.amount) || 0;
+      feesMap[month] = (feesMap[month] || 0) + amount;
+    }
+  });
+
+  // 2. Fetch attendance for last 6 months
+  const now = new Date();
+  const sixMonthsAgo = new Date();
+  sixMonthsAgo.setMonth(now.getMonth() - 5);
+  sixMonthsAgo.setDate(1);
+  const startStr = sixMonthsAgo.toISOString().split('T')[0];
+
+  const attQ = query(
+    collection(db, 'attendance'),
+    where('date', '>=', startStr),
+    orderBy('date', 'asc')
+  );
+  const attSnap = await getDocs(attQ);
+
+  const attMap = {};
+  attSnap.docs.forEach(d => {
+    const data = d.data();
+    const date = data.date;
+    const month = date.slice(0, 7);
+    const statuses = data.statuses || {};
+
+    if (!attMap[month]) {
+      attMap[month] = { total: 0, present: 0 };
+    }
+
+    Object.values(statuses).forEach(stat => {
+      attMap[month].total++;
+      if (stat === 'Present') {
+        attMap[month].present++;
+      }
+    });
+  });
+
+  // Format Fee Data
+  const sortedFeeMonths = Object.keys(feesMap).sort();
+  const feeValues = sortedFeeMonths.map(m => feesMap[m]);
+
+  // Format Attendance Data
+  const sortedAttMonths = Object.keys(attMap).sort();
+  const attendanceRates = sortedAttMonths.map(m => {
+    const { total, present } = attMap[m];
+    return total > 0 ? Math.round((present / total) * 1000) / 10 : 0;
+  });
+
+  return {
+    fees: {
+      months: sortedFeeMonths,
+      values: feeValues
+    },
+    attendance: {
+      months: sortedAttMonths,
+      values: attendanceRates
+    }
+  };
+}
