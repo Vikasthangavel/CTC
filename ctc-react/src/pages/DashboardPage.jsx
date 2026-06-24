@@ -24,15 +24,28 @@ export default function DashboardPage() {
   async function fetchData() {
     setLoading(true);
     try {
-      const [s, inst, rep] = await Promise.all([
-        getStudents(true),
+      const [allStuds, inst, rep] = await Promise.all([
+        getStudents(false),
         getInstructions(5),
         getAllParentReports(),
       ]);
-      setStudents(s);
+      const activeStuds = allStuds.filter(s => s.is_active !== false);
+      setStudents(activeStuds);
       setInstructions(inst);
-      setReports(rep.slice(0, 5));
-      const gs = [...new Set(s.map(x => x.grade))].sort((a, b) => Number(a) - Number(b));
+      
+      const sMap = {};
+      allStuds.forEach(stud => { sMap[stud.id] = stud; });
+      const mappedReports = rep.slice(0, 5).map(r => {
+        const student = sMap[r.student_id];
+        return {
+          ...r,
+          student_name: student ? student.name : 'Unknown Student',
+          grade: student ? student.grade : ''
+        };
+      });
+      setReports(mappedReports);
+      
+      const gs = [...new Set(activeStuds.map(x => x.grade))].sort((a, b) => Number(a) - Number(b));
       setGrades(gs);
     } finally {
       setLoading(false);
