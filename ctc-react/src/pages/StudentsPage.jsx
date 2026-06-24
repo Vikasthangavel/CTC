@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  getStudents, addStudent, updateStudent, toggleStudentActive,
-  addActivity
+  getStudents, addStudent, toggleStudentActive,
+  addActivity, deleteStudent
 } from '../services/firestore';
 import Loader from '../components/Loader';
 import Icon from '../components/Icon';
@@ -172,6 +172,21 @@ export default function StudentsPage() {
     fetchAll();
   }
 
+  async function handleDeleteStudent(s) {
+    if (s.is_active !== false) {
+      showToast('Cannot delete an active student. Please deactivate them first.', 'danger');
+      return;
+    }
+    if (!confirm(`Are you sure you want to permanently delete student "${s.name}"? This action cannot be undone.`)) return;
+    try {
+      await deleteStudent(s.id);
+      showToast('Student deleted successfully', 'success');
+      fetchAll();
+    } catch {
+      showToast('Failed to delete student', 'danger');
+    }
+  }
+
   const bloodGroups = {};
   allStudents.forEach(s => {
     const bg = s.blood_group || 'Not Set';
@@ -239,7 +254,7 @@ export default function StudentsPage() {
                   <td style={{ fontSize: '0.85rem' }}>{s.parent_name}</td>
                   <td>
                     <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                      {s.is_active !== false && (
+                      {s.is_active !== false ? (
                         <>
                           <button className="btn btn-warning btn-sm" onClick={() => setActivityStudent(s)} title="Add Activity">
                             <Icon name="book" size={13} />
@@ -250,17 +265,32 @@ export default function StudentsPage() {
                           <a href={`tel:${s.parent_contact}`} className="btn btn-secondary btn-sm" title="Call Parent">
                             <Icon name="phone" size={13} />
                           </a>
+                          <button
+                            className="btn btn-danger btn-sm"
+                            onClick={() => handleToggleActive(s)}
+                            title="Deactivate"
+                          >
+                            <Icon name="close" size={13} />
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            className="btn btn-success btn-sm"
+                            onClick={() => handleToggleActive(s)}
+                            title="Reactivate"
+                          >
+                            <Icon name="check" size={13} />
+                          </button>
+                          <button
+                            className="btn btn-danger btn-sm"
+                            onClick={() => handleDeleteStudent(s)}
+                            title="Delete Student"
+                          >
+                            <Icon name="trash" size={13} />
+                          </button>
                         </>
                       )}
-                      <button
-                        className={`btn btn-sm ${s.is_active !== false ? 'btn-danger' : 'btn-success'}`}
-                        onClick={() => handleToggleActive(s)}
-                        title={s.is_active !== false ? 'Deactivate' : 'Reactivate'}
-                      >
-                        {s.is_active !== false
-                          ? <Icon name="close" size={13} />
-                          : <Icon name="check" size={13} />}
-                      </button>
                     </div>
                   </td>
                 </tr>

@@ -490,6 +490,17 @@ def delete_student(id):
     if not is_logged_in(): return redirect(url_for('login'))
     
     conn = get_db_connection()
+    student = conn.execute('SELECT is_active FROM students WHERE id = ?', (id,)).fetchone()
+    if not student:
+        conn.close()
+        flash('Student not found!', 'danger')
+        return redirect(url_for('students'))
+        
+    if student.get('is_active', 1) == 1:
+        conn.close()
+        flash('Cannot delete an active student. Please deactivate the student first.', 'danger')
+        return redirect(url_for('students'))
+        
     conn.execute('DELETE FROM students WHERE id = ?', (id,))
     conn.commit()
     conn.close()

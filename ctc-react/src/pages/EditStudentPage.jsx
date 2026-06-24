@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getStudent, updateStudent } from '../services/firestore';
+import { getStudent, updateStudent, deleteStudent } from '../services/firestore';
 import Loader from '../components/Loader';
 import Icon from '../components/Icon';
 import { useToast } from '../components/Toast';
@@ -34,6 +34,22 @@ export default function EditStudentPage() {
       navigate('/students');
     } catch {
       showToast('Failed to update student', 'danger');
+    } finally { setSaving(false); }
+  };
+
+  const handleDelete = async () => {
+    if (form.is_active) {
+      showToast('Cannot delete an active student. Please deactivate them first.', 'danger');
+      return;
+    }
+    if (!confirm(`Are you sure you want to permanently delete student "${form.name}"? This action cannot be undone.`)) return;
+    setSaving(true);
+    try {
+      await deleteStudent(id);
+      showToast('Student deleted successfully', 'success');
+      navigate('/students');
+    } catch {
+      showToast('Failed to delete student', 'danger');
     } finally { setSaving(false); }
   };
 
@@ -74,11 +90,18 @@ export default function EditStudentPage() {
                 <span className="form-label" style={{ margin: 0 }}>Active Student</span>
               </label>
             </div>
-            <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
-              <button type="button" className="btn btn-secondary" onClick={() => navigate('/students')}>Cancel</button>
-              <button type="submit" className="btn btn-primary" disabled={saving} style={{ gap: '6px' }}>
-                <Icon name="save" size={14} /> {saving ? 'Saving...' : 'Update Student'}
-              </button>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button type="button" className="btn btn-secondary" onClick={() => navigate('/students')}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={saving} style={{ gap: '6px' }}>
+                  <Icon name="save" size={14} /> {saving ? 'Saving...' : 'Update Student'}
+                </button>
+              </div>
+              {!form.is_active && (
+                <button type="button" className="btn btn-danger" onClick={handleDelete} disabled={saving} style={{ gap: '6px' }}>
+                  <Icon name="trash" size={14} /> Delete Student
+                </button>
+              )}
             </div>
           </form>
         </div>
