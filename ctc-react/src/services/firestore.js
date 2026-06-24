@@ -3,7 +3,8 @@
 
 import {
   collection, doc, addDoc, updateDoc, deleteDoc, getDocs,
-  getDoc, setDoc, query, where, orderBy, limit, serverTimestamp, writeBatch
+  getDoc, setDoc, query, where, orderBy, limit, serverTimestamp, writeBatch,
+  startAfter
 } from 'firebase/firestore';
 import { db } from '../firebase';
 
@@ -272,10 +273,19 @@ export async function getParentReports(limitN = 5) {
   return snap2arr(snap);
 }
 
-export async function getAllParentReports() {
-  const q = query(collection(db, 'parent_reports'), orderBy('report_date', 'desc'));
+export async function getAllParentReports(lastVisibleDoc = null, limitN = 10) {
+  let q;
+  if (lastVisibleDoc) {
+    q = query(collection(db, 'parent_reports'), orderBy('report_date', 'desc'), startAfter(lastVisibleDoc), limit(limitN));
+  } else {
+    q = query(collection(db, 'parent_reports'), orderBy('report_date', 'desc'), limit(limitN));
+  }
   const snap = await getDocs(q);
-  return snap2arr(snap);
+  return {
+    reports: snap2arr(snap),
+    lastDoc: snap.docs[snap.docs.length - 1] || null,
+    hasMore: snap.docs.length === limitN
+  };
 }
 
 // ─── PUNCH IN / PUNCH OUT ─────────────────────────────────────────────

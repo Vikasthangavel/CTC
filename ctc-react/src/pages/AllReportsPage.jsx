@@ -9,18 +9,39 @@ export default function AllReportsPage() {
   const [reports, setReports] = useState([]);
   const [students, setStudents] = useState({});
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [lastDoc, setLastDoc] = useState(null);
+  const [hasMore, setHasMore] = useState(false);
 
   useEffect(() => {
     async function load() {
-      const [reps, studs] = await Promise.all([getAllParentReports(), getStudents(false)]);
+      const [res, studs] = await Promise.all([getAllParentReports(null, 10), getStudents(false)]);
       const smap = {};
       studs.forEach(s => { smap[s.id] = s; });
       setStudents(smap);
-      setReports(reps.map(r => ({ ...r, student: smap[r.student_id] })));
+      setReports(res.reports.map(r => ({ ...r, student: smap[r.student_id] })));
+      setLastDoc(res.lastDoc);
+      setHasMore(res.hasMore);
       setLoading(false);
     }
     load();
   }, []);
+
+  async function handleLoadMore() {
+    if (!lastDoc || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const res = await getAllParentReports(lastDoc, 10);
+      const newReports = res.reports.map(r => ({ ...r, student: students[r.student_id] }));
+      setReports(prev => [...prev, ...newReports]);
+      setLastDoc(res.lastDoc);
+      setHasMore(res.hasMore);
+    } catch (err) {
+      console.error('Error loading more reports:', err);
+    } finally {
+      setLoadingMore(false);
+    }
+  }
 
   function formatDate(val) {
     if (!val) return '';
@@ -61,6 +82,19 @@ export default function AllReportsPage() {
           ))}
         </div>
       </div>
+
+      {hasMore && (
+        <div style={{ textAlign: 'center', marginTop: '20px' }}>
+          <button
+            className="btn btn-secondary"
+            onClick={handleLoadMore}
+            disabled={loadingMore}
+            style={{ minWidth: '150px' }}
+          >
+            {loadingMore ? 'Loading...' : 'Load More'}
+          </button>
+        </div>
+      )}
     </>
   );
 }

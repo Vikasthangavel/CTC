@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  getStudents, getInstructions, getAllParentReports,
+  getStudents, getInstructions, getParentReports,
   addInstruction, deleteInstruction
 } from '../services/firestore';
 import Loader from '../components/Loader';
@@ -27,7 +27,7 @@ export default function DashboardPage() {
       const [allStuds, inst, rep] = await Promise.all([
         getStudents(false),
         getInstructions(5),
-        getAllParentReports(),
+        getParentReports(5),
       ]);
       const activeStuds = allStuds.filter(s => s.is_active !== false);
       setStudents(activeStuds);
@@ -35,7 +35,7 @@ export default function DashboardPage() {
       
       const sMap = {};
       allStuds.forEach(stud => { sMap[stud.id] = stud; });
-      const mappedReports = rep.slice(0, 5).map(r => {
+      const mappedReports = rep.map(r => {
         const student = sMap[r.student_id];
         return {
           ...r,
