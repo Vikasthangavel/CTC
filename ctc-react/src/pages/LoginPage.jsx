@@ -65,8 +65,8 @@ export default function LoginPage() {
         <div style={{ width: '100%', maxWidth: '420px' }}>
           <div className="card">
             <div className="card-header" style={{ textAlign: 'center', padding: '24px', borderRadius: '12px 12px 0 0' }}>
-              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px', color: 'var(--primary)' }}>
-                <Icon name="lightning" size={32} />
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '12px' }}>
+                <img src="/logo.png" alt="CTC Logo" style={{ width: '64px', height: '64px', borderRadius: '12px', objectFit: 'contain', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }} />
               </div>
               <h4 style={{ margin: 0 }}>Welcome Back</h4>
               <p style={{ color: 'var(--text-muted)', margin: '4px 0 0', fontSize: '0.85rem' }}>

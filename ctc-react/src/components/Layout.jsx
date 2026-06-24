@@ -27,8 +27,8 @@ export default function Layout({ children }) {
       {/* ===== DESKTOP SIDEBAR ===== */}
       {adminLoggedIn && (
         <nav className="sidebar-nav">
-          <Link className="sidebar-nav__brand" to="/dashboard">
-            <Icon name="lightning" size={18} />
+          <Link className="sidebar-nav__brand" to="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <img src="/logo.png" alt="CTC Logo" style={{ width: '22px', height: '22px', borderRadius: '4px', objectFit: 'contain' }} />
             Challengers TC
           </Link>
 
@@ -57,8 +57,8 @@ export default function Layout({ children }) {
 
       {/* ===== TOP NAV ===== */}
       <nav className="top-nav">
-        <Link className="top-nav__brand" to={adminLoggedIn ? '/dashboard' : parentPhone ? '/parent' : '/login'}>
-          <Icon name="lightning" size={16} />
+        <Link className="top-nav__brand" to={adminLoggedIn ? '/dashboard' : parentPhone ? '/parent' : '/login'} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <img src="/logo.png" alt="CTC Logo" style={{ width: '20px', height: '20px', borderRadius: '4px', objectFit: 'contain' }} />
           Challengers TC
         </Link>
         {(adminLoggedIn || parentPhone) && (
