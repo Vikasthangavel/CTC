@@ -4,6 +4,7 @@ import { ToastProvider } from './components/Toast';
 import Layout from './components/Layout';
 
 import LoginPage from './pages/LoginPage';
+import PublicReceiptPage from './pages/PublicReceiptPage';
 import DashboardPage from './pages/DashboardPage';
 import StudentsPage from './pages/StudentsPage';
 import EditStudentPage from './pages/EditStudentPage';
@@ -42,6 +43,7 @@ function AppRoutes() {
       <Routes>
         <Route path="/" element={<IndexRedirect />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/receipt/:feeId" element={<PublicReceiptPage />} />
 
         {/* Admin Routes */}
         <Route path="/dashboard" element={<AdminRoute><DashboardPage /></AdminRoute>} />

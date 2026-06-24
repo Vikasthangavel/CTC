@@ -171,14 +171,24 @@ export async function quickPay(studentId, monthYear, amount) {
   const today = new Date().toISOString().split('T')[0];
 
   if (!snap.empty) {
-    await updateDoc(doc(db, 'fees', snap.docs[0].id), { status: 'Paid', payment_date: today });
+    const docId = snap.docs[0].id;
+    await updateDoc(doc(db, 'fees', docId), { status: 'Paid', payment_date: today });
+    return docId;
   } else {
-    await addDoc(collection(db, 'fees'), { student_id: studentId, month_year: monthYear, amount, status: 'Paid', payment_date: today });
+    const docRef = await addDoc(collection(db, 'fees'), { student_id: studentId, month_year: monthYear, amount, status: 'Paid', payment_date: today });
+    return docRef.id;
   }
 }
 
 export async function addFeeRecord(data) {
-  await addDoc(collection(db, 'fees'), data);
+  const docRef = await addDoc(collection(db, 'fees'), data);
+  return docRef.id;
+}
+
+export async function getFee(id) {
+  const ref = doc(db, 'fees', id);
+  const snap = await getDoc(ref);
+  return snap.exists() ? { id: snap.id, ...snap.data() } : null;
 }
 
 // ─── ACTIVITIES ─────────────────────────────────────────────

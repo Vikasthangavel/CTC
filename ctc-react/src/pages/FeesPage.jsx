@@ -148,7 +148,8 @@ export default function FeesPage() {
                             student: item.student,
                             month: selectedMonth,
                             amount: item.amount,
-                            paymentDate: item.payment_date
+                            paymentDate: item.payment_date,
+                            feeId: item.fee_id
                           })}
                           title="Share on WhatsApp"
                         >

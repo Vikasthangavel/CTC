@@ -270,9 +270,9 @@ export function printReceipt({ student, month, amount, paymentDate, receiptId })
 }
 
 /**
- * Open WhatsApp send page pre-filled with receipt details
+ * Open WhatsApp send page pre-filled with receipt details & download link
  */
-export function shareReceiptOnWhatsApp({ student, month, amount, paymentDate }) {
+export function shareReceiptOnWhatsApp({ student, month, amount, paymentDate, feeId }) {
   const rawContact = student.parent_contact || '';
   // Strip non-numeric chars
   let formattedPhone = rawContact.replace(/[^0-9]/g, '');
@@ -285,8 +285,9 @@ export function shareReceiptOnWhatsApp({ student, month, amount, paymentDate }) 
   }
 
   const formattedDate = paymentDate || new Date().toISOString().split('T')[0];
+  const receiptUrl = feeId ? `${window.location.origin}/receipt/${feeId}` : '';
 
-  const msg = `Hello *${student.parent_name}*,\n\nWe have successfully received the tuition fee payment of *₹${amount}* for *${student.name}* (Grade ${student.grade}) for the month of *${month}* on *${formattedDate}*.\n\nThank you!\n*Challengers Tuition Center*`;
+  const msg = `Hello *${student.parent_name}*,\n\nWe have successfully received the tuition fee payment of *₹${amount}* for *${student.name}* (Grade ${student.grade}) for the month of *${month}* on *${formattedDate}*.\n\n${receiptUrl ? `You can view and download your receipt here:\n${receiptUrl}\n\n` : ''}Thank you!\n*Challengers Tuition Center*`;
 
   const url = `https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodeURIComponent(msg)}`;
   window.open(url, '_blank');
