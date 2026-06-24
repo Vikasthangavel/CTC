@@ -54,9 +54,6 @@ export default function AllReportsPage() {
   return (
     <>
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-        <button className="btn btn-secondary btn-sm" onClick={() => navigate('/dashboard')}>
-          <Icon name="arrowLeft" size={14} /> Back
-        </button>
         <h2 style={{ margin: 0 }}>All Parent Reports</h2>
       </div>
 
