@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   getStudents, getInstructions, getParentReports,
-  addInstruction, deleteInstruction
+  addInstruction, deleteInstruction, recalculateAllStudentsAttendance
 } from '../services/firestore';
 import Loader from '../components/Loader';
 import Icon from '../components/Icon';
@@ -47,6 +47,12 @@ export default function DashboardPage() {
       
       const gs = [...new Set(activeStuds.map(x => x.grade))].sort((a, b) => Number(a) - Number(b));
       setGrades(gs);
+
+      // Self-healing migration for attendance cache
+      const needsMigration = allStuds.some(s => s.attendance_total === undefined);
+      if (needsMigration) {
+        recalculateAllStudentsAttendance().catch(err => console.error("Attendance cache migration failed:", err));
+      }
     } finally {
       setLoading(false);
     }

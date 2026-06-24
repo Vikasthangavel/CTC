@@ -4,7 +4,7 @@
 import {
   collection, doc, addDoc, updateDoc, deleteDoc, getDocs,
   getDoc, setDoc, query, where, orderBy, limit, serverTimestamp, writeBatch,
-  startAfter
+  startAfter, increment
 } from 'firebase/firestore';
 import { db } from '../firebase';
 
@@ -98,10 +98,47 @@ export async function getAttendanceByDate(date) {
 export async function saveBulkAttendance(date, statusMap) {
   // statusMap: { student_id: 'Present'|'Absent' }
   const ref = doc(db, 'attendance', date);
-  await setDoc(ref, {
+  const oldSnap = await getDoc(ref);
+  const oldStatuses = oldSnap.exists() ? (oldSnap.data().statuses || {}) : {};
+
+  const batch = writeBatch(db);
+  const allStudentIds = new Set([...Object.keys(oldStatuses), ...Object.keys(statusMap)]);
+
+  for (const sId of allStudentIds) {
+    const sOld = oldStatuses[sId];
+    const sNew = statusMap[sId];
+
+    let deltaTotal = 0;
+    let deltaPresent = 0;
+
+    if (sOld === undefined && sNew !== undefined) {
+      deltaTotal = 1;
+      if (sNew === 'Present') deltaPresent = 1;
+    } else if (sOld !== undefined && sNew === undefined) {
+      deltaTotal = -1;
+      if (sOld === 'Present') deltaPresent = -1;
+    } else if (sOld !== undefined && sNew !== undefined) {
+      if (sOld !== sNew) {
+        if (sNew === 'Present') deltaPresent = 1;
+        else if (sOld === 'Present') deltaPresent = -1;
+      }
+    }
+
+    if (deltaTotal !== 0 || deltaPresent !== 0) {
+      const studentRef = doc(db, 'students', sId);
+      const studentUpdate = {};
+      if (deltaTotal !== 0) studentUpdate.attendance_total = increment(deltaTotal);
+      if (deltaPresent !== 0) studentUpdate.attendance_present = increment(deltaPresent);
+      batch.update(studentRef, studentUpdate);
+    }
+  }
+
+  batch.set(ref, {
     date: date,
     statuses: statusMap
   }, { merge: true });
+
+  await batch.commit();
 }
 
 export async function getMonthlyAttendanceStats(month, students) {
@@ -132,22 +169,53 @@ export async function getMonthlyAttendanceStats(month, students) {
 }
 
 export async function getStudentAttendanceStats(studentId) {
-  const col = collection(db, 'attendance');
-  const snap = await getDocs(col);
-  let total = 0;
-  let present = 0;
-  snap.docs.forEach(d => {
+  const ref = doc(db, 'students', studentId);
+  const snap = await getDoc(ref);
+  if (snap.exists()) {
+    const data = snap.data();
+    const total = data.attendance_total || 0;
+    const present = data.attendance_present || 0;
+    const percentage = total > 0 ? Math.round((present / total) * 1000) / 10 : 0;
+    return { total, present, percentage };
+  }
+  return { total: 0, present: 0, percentage: 0 };
+}
+
+export async function recalculateAllStudentsAttendance() {
+  const [students, attendanceDocs] = await Promise.all([
+    getStudents(false),
+    getDocs(collection(db, 'attendance'))
+  ]);
+
+  const statsMap = {};
+  students.forEach(s => {
+    statsMap[s.id] = { total: 0, present: 0 };
+  });
+
+  attendanceDocs.forEach(d => {
     const data = d.data();
     const statuses = data.statuses || {};
-    if (statuses[studentId] !== undefined) {
-      total++;
-      if (statuses[studentId] === 'Present') {
-        present++;
+    Object.keys(statuses).forEach(sId => {
+      if (statsMap[sId]) {
+        statsMap[sId].total++;
+        if (statuses[sId] === 'Present') {
+          statsMap[sId].present++;
+        }
       }
-    }
+    });
   });
-  const percentage = total > 0 ? Math.round((present / total) * 1000) / 10 : 0;
-  return { total, present, percentage };
+
+  const batch = writeBatch(db);
+  students.forEach(s => {
+    const stats = statsMap[s.id];
+    const ref = doc(db, 'students', s.id);
+    batch.update(ref, {
+      attendance_total: stats.total,
+      attendance_present: stats.present
+    });
+  });
+
+  await batch.commit();
 }
 
 // ─── FEES ─────────────────────────────────────────────
