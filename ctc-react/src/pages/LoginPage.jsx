@@ -64,12 +64,10 @@ export default function LoginPage() {
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh' }}>
         <div style={{ width: '100%', maxWidth: '420px' }}>
           <div className="card">
-            <div className="card-header" style={{ textAlign: 'center', padding: '24px', borderRadius: '12px 12px 0 0' }}>
-              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '12px' }}>
-                <img src="/logo.png" alt="CTC Logo" style={{ width: '64px', height: '64px', borderRadius: '12px', objectFit: 'contain', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }} />
-              </div>
-              <h4 style={{ margin: 0 }}>Welcome Back</h4>
-              <p style={{ color: 'var(--text-muted)', margin: '4px 0 0', fontSize: '0.85rem' }}>
+            <div className="card-header" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '32px 24px 24px', borderRadius: '12px 12px 0 0', gap: '8px' }}>
+              <img src="/logo.png" alt="CTC Logo" style={{ width: '80px', height: '80px', borderRadius: '16px', objectFit: 'contain', boxShadow: '0 4px 12px rgba(0,0,0,0.12)', marginBottom: '4px' }} />
+              <h4 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '700' }}>Welcome Back</h4>
+              <p style={{ color: 'var(--text-muted)', margin: 0, fontSize: '0.85rem' }}>
                 Please enter your registered details
               </p>
             </div>
