@@ -4,6 +4,7 @@ import { getStudent, getStudentFees, addFeeRecord } from '../services/firestore'
 import Loader from '../components/Loader';
 import Icon from '../components/Icon';
 import { useToast } from '../components/Toast';
+import { printReceipt, shareReceiptOnWhatsApp } from '../services/receipt';
 
 export default function StudentFeesPage() {
   const { studentId } = useParams();
@@ -91,7 +92,7 @@ export default function StudentFeesPage() {
         <div className="table-wrapper">
           <table>
             <thead>
-              <tr><th>Month</th><th>Amount</th><th>Status</th><th>Payment Date</th></tr>
+              <tr><th>Month</th><th>Amount</th><th>Status</th><th>Payment Date</th><th>Actions</th></tr>
             </thead>
             <tbody>
               {fees.map(f => (
@@ -100,10 +101,43 @@ export default function StudentFeesPage() {
                   <td>₹{f.amount}</td>
                   <td><span className={`badge ${f.status === 'Paid' ? 'badge-success' : 'badge-danger'}`}>{f.status}</span></td>
                   <td style={{ color: 'var(--text-muted)' }}>{f.payment_date || '—'}</td>
+                  <td>
+                    {f.status === 'Paid' && (
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <button
+                          className="btn btn-info btn-sm"
+                          style={{ gap: '4px', padding: '3px 6px', fontSize: '0.75rem' }}
+                          onClick={() => printReceipt({
+                            student,
+                            month: f.month_year,
+                            amount: f.amount,
+                            paymentDate: f.payment_date,
+                            receiptId: f.id
+                          })}
+                          title="Print Receipt"
+                        >
+                          <Icon name="download" size={11} /> Print
+                        </button>
+                        <button
+                          className="btn btn-success btn-sm"
+                          style={{ gap: '4px', padding: '3px 6px', fontSize: '0.75rem', background: '#25D366', borderColor: '#25D366' }}
+                          onClick={() => shareReceiptOnWhatsApp({
+                            student,
+                            month: f.month_year,
+                            amount: f.amount,
+                            paymentDate: f.payment_date
+                          })}
+                          title="Share on WhatsApp"
+                        >
+                          <Icon name="share" size={11} /> Share
+                        </button>
+                      </div>
+                    )}
+                  </td>
                 </tr>
               ))}
               {fees.length === 0 && (
-                <tr><td colSpan="4" style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '24px' }}>No fee records found.</td></tr>
+                <tr><td colSpan="5" style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '24px' }}>No fee records found.</td></tr>
               )}
             </tbody>
           </table>

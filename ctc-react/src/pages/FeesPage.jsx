@@ -4,6 +4,7 @@ import { getStudents, getFeesByMonth, quickPay } from '../services/firestore';
 import Loader from '../components/Loader';
 import Icon from '../components/Icon';
 import { useToast } from '../components/Toast';
+import { printReceipt, shareReceiptOnWhatsApp } from '../services/receipt';
 
 export default function FeesPage() {
   const { showToast } = useToast();
@@ -30,6 +31,7 @@ export default function FeesPage() {
           status: fee ? fee.status : 'Unpaid',
           amount: fee ? fee.amount : s.monthly_fee,
           fee_id: fee ? fee.id : null,
+          payment_date: fee ? fee.payment_date : null,
         };
       });
       setStudentFees(list);
@@ -124,9 +126,35 @@ export default function FeesPage() {
                         {paying === item.student.id ? 'Processing...' : 'Mark Paid'}
                       </button>
                     ) : (
-                      <button className="btn btn-secondary btn-sm" disabled style={{ gap: '4px' }}>
-                        <Icon name="check" size={13} /> Paid
-                      </button>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <button
+                          className="btn btn-info btn-sm"
+                          style={{ gap: '4px', padding: '4px 8px', fontSize: '0.8rem' }}
+                          onClick={() => printReceipt({
+                            student: item.student,
+                            month: selectedMonth,
+                            amount: item.amount,
+                            paymentDate: item.payment_date,
+                            receiptId: item.fee_id
+                          })}
+                          title="Print Receipt"
+                        >
+                          <Icon name="download" size={13} /> Receipt
+                        </button>
+                        <button
+                          className="btn btn-success btn-sm"
+                          style={{ gap: '4px', padding: '4px 8px', fontSize: '0.8rem', background: '#25D366', borderColor: '#25D366' }}
+                          onClick={() => shareReceiptOnWhatsApp({
+                            student: item.student,
+                            month: selectedMonth,
+                            amount: item.amount,
+                            paymentDate: item.payment_date
+                          })}
+                          title="Share on WhatsApp"
+                        >
+                          <Icon name="share" size={13} /> Share
+                        </button>
+                      </div>
                     )}
                   </td>
                 </tr>
