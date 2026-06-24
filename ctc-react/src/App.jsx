@@ -6,6 +6,7 @@ import Layout from './components/Layout';
 import LoginPage from './pages/LoginPage';
 import PublicReceiptPage from './pages/PublicReceiptPage';
 import DashboardPage from './pages/DashboardPage';
+import AnalyticsPage from './pages/AnalyticsPage';
 import StudentsPage from './pages/StudentsPage';
 import EditStudentPage from './pages/EditStudentPage';
 import AttendancePage from './pages/AttendancePage';
@@ -54,6 +55,7 @@ function AppRoutes() {
         <Route path="/fees" element={<AdminRoute><FeesPage /></AdminRoute>} />
         <Route path="/fees/student/:studentId" element={<AdminRoute><StudentFeesPage /></AdminRoute>} />
         <Route path="/reports" element={<AdminRoute><AllReportsPage /></AdminRoute>} />
+        <Route path="/analytics" element={<AdminRoute><AnalyticsPage /></AdminRoute>} />
 
         {/* Parent Routes */}
         <Route path="/parent" element={<ParentRoute><ParentHomePage /></ParentRoute>} />

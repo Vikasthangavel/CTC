@@ -21,6 +21,7 @@ export default function Layout({ children }) {
     { to: '/attendance', icon: 'attend',   label: 'Attendance' },
     { to: '/fees',       icon: 'fees',     label: 'Fees' },
     { to: '/reports',    icon: 'reports',  label: 'Reports' },
+    { to: '/analytics',  icon: 'chart',    label: 'Analytics' },
   ];
 
   return (
