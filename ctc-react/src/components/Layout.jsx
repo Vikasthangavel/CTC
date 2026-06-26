@@ -125,7 +125,7 @@ export default function Layout({ children }) {
           </div>
           <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
             Powered by{' '}
-            <a href="https://www.time2orders.com" style={{ color: 'var(--primary)' }}>time2innovate</a>
+            <a href="https://time2innovate.pages.dev/" style={{ color: 'var(--primary)' }}>time2innovate</a>
             {' '}&nbsp;|&nbsp;{' '}
             Engineered by{' '}
             <a href="https://vikast.me" style={{ background: 'linear-gradient(90deg, #2563eb, #7c3aed)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Vikas</a>
