@@ -93,7 +93,7 @@ export default function FeesPage() {
             <thead>
               <tr>
                 <th>Student</th>
-                <th>Grade</th>
+                <th><span className="hide-mobile">Grade</span><span style={{display: 'none'}} className="show-mobile">Gr</span></th>
                 <th>Amount</th>
                 <th>Status</th>
                 <th>Action</th>
@@ -123,7 +123,7 @@ export default function FeesPage() {
                         style={{ gap: '4px' }}
                       >
                         <Icon name="check" size={13} />
-                        {paying === item.student.id ? 'Processing...' : 'Mark Paid'}
+                        {paying === item.student.id ? <span className="hide-mobile">Processing...</span> : <span className="hide-mobile">Mark Paid</span>}
                       </button>
                     ) : (
                       <div style={{ display: 'flex', gap: '6px' }}>
@@ -139,7 +139,7 @@ export default function FeesPage() {
                           })}
                           title="Print Receipt"
                         >
-                          <Icon name="download" size={13} /> Receipt
+                          <Icon name="download" size={13} /> <span className="hide-mobile">Receipt</span>
                         </button>
                         <button
                           className="btn btn-success btn-sm"
@@ -153,7 +153,7 @@ export default function FeesPage() {
                           })}
                           title="Share on WhatsApp"
                         >
-                          <Icon name="share" size={13} /> Share
+                          <Icon name="share" size={13} /> <span className="hide-mobile">Share</span>
                         </button>
                       </div>
                     )}

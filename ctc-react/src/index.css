@@ -301,10 +301,16 @@ textarea.form-control { resize: vertical; min-height: 90px; }
 /* ===== TABLES ===== */
 .table-wrapper { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; }
-th { color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.8px; padding: 10px 14px; font-weight: 600; border-bottom: 1px solid var(--border); background: var(--surface-2); }
+th { color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.8px; padding: 10px 14px; font-weight: 600; border-bottom: 1px solid var(--border); background: var(--surface-2); white-space: nowrap; }
 td { padding: 10px 14px; border-bottom: 1px solid var(--border); font-size: 0.88rem; vertical-align: middle; color: var(--text); }
 tr:last-child td { border-bottom: none; }
 tr:hover td { background: var(--surface-2); }
+
+@media (max-width: 600px) {
+  th, td { padding: 8px 6px; font-size: 0.8rem; }
+  .hide-mobile { display: none !important; }
+  .show-mobile { display: inline !important; }
+}
 
 /* ===== ALERTS / TOAST ===== */
 .alert {
