@@ -97,14 +97,9 @@ export default function AttendancePage() {
       await punchIn(studentId, selectedDate);
       showToast('Punched In!', 'success');
       
-      // Auto-mark present when punching in, and mark all other unmarked students as Absent
+      // Auto-mark present when punching in
       const nextAttendance = { ...attendance };
       nextAttendance[studentId] = 'Present';
-      students.forEach(s => {
-        if (!nextAttendance[s.id]) {
-          nextAttendance[s.id] = 'Absent';
-        }
-      });
       
       setAttendance(nextAttendance);
       await saveBulkAttendance(selectedDate, nextAttendance);
