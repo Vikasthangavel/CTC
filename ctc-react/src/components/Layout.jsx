@@ -3,7 +3,8 @@ import { useAuth } from '../context/AuthContext';
 import Icon from './Icon';
 
 export default function Layout({ children }) {
-  const { adminLoggedIn, parentPhone, logout } = useAuth();
+  const { adminLoggedIn, subAdminLoggedIn, parentPhone, logout } = useAuth();
+  const isAdminOrSub = adminLoggedIn || subAdminLoggedIn;
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -27,7 +28,7 @@ export default function Layout({ children }) {
   return (
     <>
       {/* ===== DESKTOP SIDEBAR ===== */}
-      {adminLoggedIn && !isReceipt && (
+      {isAdminOrSub && !isReceipt && (
         <nav className="sidebar-nav">
           <Link className="sidebar-nav__brand" to="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <img src="/logo.png" alt="CTC Logo" style={{ width: '22px', height: '22px', borderRadius: '4px', objectFit: 'contain' }} />
@@ -60,11 +61,11 @@ export default function Layout({ children }) {
       {/* ===== TOP NAV ===== */}
       {!isReceipt && (
         <nav className="top-nav">
-          <Link className="top-nav__brand" to={adminLoggedIn ? '/dashboard' : parentPhone ? '/parent' : '/login'} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Link className="top-nav__brand" to={isAdminOrSub ? '/dashboard' : parentPhone ? '/parent' : '/login'} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <img src="/logo.png" alt="CTC Logo" style={{ width: '20px', height: '20px', borderRadius: '4px', objectFit: 'contain' }} />
             Challengers TC
           </Link>
-          {(adminLoggedIn || parentPhone) && (
+          {(isAdminOrSub || parentPhone) && (
             <button className="top-nav__logout" onClick={handleLogout}>
               <Icon name="logout" size={14} />
               Logout
@@ -74,7 +75,7 @@ export default function Layout({ children }) {
       )}
 
       {/* ===== MOBILE BOTTOM NAV (admin only) ===== */}
-      {adminLoggedIn && !isReceipt && (
+      {isAdminOrSub && !isReceipt && (
         <nav className="bottom-nav">
           <div className="bottom-nav__inner">
             {adminLinks.map(({ to, icon, label }) => (

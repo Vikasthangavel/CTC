@@ -6,6 +6,7 @@ import {
 import Loader from '../components/Loader';
 import Icon from '../components/Icon';
 import { useToast } from '../components/Toast';
+import { useAuth } from '../context/AuthContext';
 
 function to24Hour(time12h) {
   if (!time12h) return '';
@@ -31,6 +32,7 @@ function to12Hour(time24h) {
 }
 
 export default function AttendancePage() {
+  const { subAdminLoggedIn } = useAuth();
   const { showToast } = useToast();
   const today = new Date().toISOString().split('T')[0];
   const currentMonth = new Date().toISOString().slice(0, 7);
@@ -319,14 +321,16 @@ export default function AttendancePage() {
                         <Icon name="arrowRight" size={13} />
                         {isPunching ? 'Punching...' : 'Punch In'}
                       </button>
-                      <button
-                        className="btn btn-secondary btn-sm"
-                        style={{ padding: '4px 12px' }}
-                        onClick={() => handleEditPunchClick(s.id)}
-                        disabled={isPunching}
-                      >
-                        <Icon name="edit" size={13} />
-                      </button>
+                      {!subAdminLoggedIn && (
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          style={{ padding: '4px 12px' }}
+                          onClick={() => handleEditPunchClick(s.id)}
+                          disabled={isPunching}
+                        >
+                          <Icon name="edit" size={13} />
+                        </button>
+                      )}
                     </div>
                   ) : (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
@@ -357,18 +361,22 @@ export default function AttendancePage() {
                             {isPunching ? '...' : 'Out'}
                           </button>
                         )}
-                        <button
-                          className="btn btn-secondary btn-sm"
-                          style={{ padding: '4px 8px', fontSize: '0.72rem' }}
-                          onClick={() => handleResetPunch(s.id)}
-                          disabled={isPunching}
-                        >Reset</button>
-                        <button
-                          className="btn btn-secondary btn-sm"
-                          style={{ padding: '4px 8px', fontSize: '0.72rem' }}
-                          onClick={() => handleEditPunchClick(s.id)}
-                          disabled={isPunching}
-                        >Edit</button>
+                        {!subAdminLoggedIn && (
+                          <>
+                            <button
+                              className="btn btn-secondary btn-sm"
+                              style={{ padding: '4px 8px', fontSize: '0.72rem' }}
+                              onClick={() => handleResetPunch(s.id)}
+                              disabled={isPunching}
+                            >Reset</button>
+                            <button
+                              className="btn btn-secondary btn-sm"
+                              style={{ padding: '4px 8px', fontSize: '0.72rem' }}
+                              onClick={() => handleEditPunchClick(s.id)}
+                              disabled={isPunching}
+                            >Edit</button>
+                          </>
+                        )}
                       </div>
                     </div>
                   )}

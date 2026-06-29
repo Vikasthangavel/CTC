@@ -6,6 +6,7 @@ import Loader from '../components/Loader';
 import Icon from '../components/Icon';
 
 const ADMIN_PHONE = '9524439288';
+const SUBADMIN_PHONE = '9688888378';
 
 function getAdminPass() {
   const now = new Date();
@@ -14,13 +15,20 @@ function getAdminPass() {
   return dd + mm;
 }
 
+function getSubAdminPass() {
+  const now = new Date();
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const yy = String(now.getFullYear()).slice(-2);
+  return mm + yy;
+}
+
 export default function LoginPage() {
-  const { loginAdmin, loginParent } = useAuth();
+  const { loginAdmin, loginSubAdmin, loginParent } = useAuth();
   const navigate = useNavigate();
 
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
-  const [adminMode, setAdminMode] = useState(false);
+  const [adminMode, setAdminMode] = useState(null); // 'admin' | 'subadmin' | null
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -32,13 +40,24 @@ export default function LoginPage() {
     try {
       if (phone === ADMIN_PHONE) {
         if (!adminMode) {
-          setAdminMode(true);
+          setAdminMode('admin');
         } else {
           if (password === getAdminPass()) {
             loginAdmin();
             navigate('/dashboard');
           } else {
             setError('Invalid Admin Password');
+          }
+        }
+      } else if (phone === SUBADMIN_PHONE) {
+        if (!adminMode) {
+          setAdminMode('subadmin');
+        } else {
+          if (password === getSubAdminPass()) {
+            loginSubAdmin();
+            navigate('/dashboard');
+          } else {
+            setError('Invalid Sub Admin Password');
           }
         }
       } else {
@@ -88,28 +107,28 @@ export default function LoginPage() {
 
                 {adminMode && (
                   <div className="form-group">
-                    <label className="form-label">Admin Password</label>
+                    <label className="form-label">{adminMode === 'admin' ? 'Admin Password' : 'Sub Admin Password'}</label>
                     <input
                       type="password" className="form-control form-control-lg"
                       value={password} onChange={e => setPassword(e.target.value)}
-                      placeholder="Enter admin PIN"
+                      placeholder="Enter PIN"
                       required autoFocus
                     />
                   </div>
                 )}
 
                 <button type="submit" className="btn btn-primary btn-block btn-lg" style={{ marginTop: '8px', gap: '8px' }}>
-                  {adminMode ? <><Icon name="check" size={16} /> Login as Admin</> : 'Continue'}
+                  {adminMode ? <><Icon name="check" size={16} /> Login as {adminMode === 'admin' ? 'Admin' : 'Sub Admin'}</> : 'Continue'}
                 </button>
 
                 {adminMode && (
                   <div style={{ textAlign: 'center', marginTop: '12px' }}>
                     <button
                       type="button"
-                      onClick={() => { setAdminMode(false); setPhone(''); setPassword(''); setError(''); }}
+                      onClick={() => { setAdminMode(null); setPhone(''); setPassword(''); setError(''); }}
                       style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.82rem' }}
                     >
-                      ← Not Admin? Go back
+                      ← Not {adminMode === 'admin' ? 'Admin' : 'Sub Admin'}? Go back
                     </button>
                   </div>
                 )}

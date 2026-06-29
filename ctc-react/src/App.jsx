@@ -22,8 +22,13 @@ import ParentReportPage from './pages/ParentReportPage';
 import ParentActivityReportPage from './pages/ParentActivityReportPage';
 
 function AdminRoute({ children }) {
+  const { adminLoggedIn, subAdminLoggedIn } = useAuth();
+  return (adminLoggedIn || subAdminLoggedIn) ? children : <Navigate to="/login" replace />;
+}
+
+function SuperAdminRoute({ children }) {
   const { adminLoggedIn } = useAuth();
-  return adminLoggedIn ? children : <Navigate to="/login" replace />;
+  return adminLoggedIn ? children : <Navigate to="/dashboard" replace />;
 }
 
 function ParentRoute({ children }) {
@@ -32,8 +37,8 @@ function ParentRoute({ children }) {
 }
 
 function IndexRedirect() {
-  const { adminLoggedIn, parentPhone } = useAuth();
-  if (adminLoggedIn) return <Navigate to="/dashboard" replace />;
+  const { adminLoggedIn, subAdminLoggedIn, parentPhone } = useAuth();
+  if (adminLoggedIn || subAdminLoggedIn) return <Navigate to="/dashboard" replace />;
   if (parentPhone) return <Navigate to="/parent" replace />;
   return <Navigate to="/login" replace />;
 }
@@ -49,7 +54,7 @@ function AppRoutes() {
         {/* Admin Routes */}
         <Route path="/dashboard" element={<AdminRoute><DashboardPage /></AdminRoute>} />
         <Route path="/students" element={<AdminRoute><StudentsPage /></AdminRoute>} />
-        <Route path="/students/:id/edit" element={<AdminRoute><EditStudentPage /></AdminRoute>} />
+        <Route path="/students/:id/edit" element={<SuperAdminRoute><EditStudentPage /></SuperAdminRoute>} />
         <Route path="/students/:studentId/report" element={<AdminRoute><ActivityReportPage /></AdminRoute>} />
         <Route path="/attendance" element={<AdminRoute><AttendancePage /></AdminRoute>} />
         <Route path="/fees" element={<AdminRoute><FeesPage /></AdminRoute>} />

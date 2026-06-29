@@ -4,8 +4,10 @@ import { getStudent, getActivitiesByMonth, deleteActivity } from '../services/fi
 import Loader from '../components/Loader';
 import Icon from '../components/Icon';
 import { useToast } from '../components/Toast';
+import { useAuth } from '../context/AuthContext';
 
 export default function ActivityReportPage() {
+  const { subAdminLoggedIn } = useAuth();
   const { studentId } = useParams();
   const navigate = useNavigate();
   const { showToast } = useToast();
@@ -76,7 +78,9 @@ export default function ActivityReportPage() {
                     <span className="text-info fw-bold" style={{ fontSize: '0.85rem' }}>{act.activity_date}</span>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginLeft: '10px' }}>{formatDate(act.created_at)}</span>
                   </div>
-                  <button className="btn btn-danger btn-sm" onClick={() => handleDelete(act.id)} title="Delete"><Icon name="trash" size={13} /></button>
+                  {!subAdminLoggedIn && (
+                    <button className="btn btn-danger btn-sm" onClick={() => handleDelete(act.id)} title="Delete"><Icon name="trash" size={13} /></button>
+                  )}
                 </div>
                 <p style={{ margin: 0, fontSize: '0.88rem', lineHeight: '1.5' }}>{act.content}</p>
               </div>

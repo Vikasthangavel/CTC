@@ -137,7 +137,10 @@ function BirthdayModal({ students, onClose }) {
   );
 }
 
+import { useAuth } from '../context/AuthContext';
+
 export default function StudentsPage() {
+  const { subAdminLoggedIn } = useAuth();
   const { showToast } = useToast();
   const [students, setStudents] = useState([]);
   const [allStudents, setAllStudents] = useState([]);
@@ -245,9 +248,15 @@ export default function StudentsPage() {
                 <tr key={s.id} style={{ opacity: s.is_active === false ? 0.5 : 1 }}>
                   <td style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>{i + 1}</td>
                   <td>
-                    <Link to={`/students/${s.id}/edit`} style={{ color: 'var(--primary)', textDecoration: 'none', fontWeight: 600 }}>
-                      {s.name}
-                    </Link>
+                    {subAdminLoggedIn ? (
+                      <span style={{ color: 'var(--primary)', fontWeight: 600 }}>
+                        {s.name}
+                      </span>
+                    ) : (
+                      <Link to={`/students/${s.id}/edit`} style={{ color: 'var(--primary)', textDecoration: 'none', fontWeight: 600 }}>
+                        {s.name}
+                      </Link>
+                    )}
                     {s.is_active === false && <span className="badge badge-secondary" style={{ marginLeft: '6px' }}>Inactive</span>}
                   </td>
                   <td>{s.grade}</td>
@@ -265,30 +274,36 @@ export default function StudentsPage() {
                           <a href={`tel:${s.parent_contact}`} className="btn btn-secondary btn-sm" title="Call Parent">
                             <Icon name="phone" size={13} />
                           </a>
-                          <button
-                            className="btn btn-danger btn-sm"
-                            onClick={() => handleToggleActive(s)}
-                            title="Deactivate"
-                          >
-                            <Icon name="close" size={13} />
-                          </button>
+                          {!subAdminLoggedIn && (
+                            <button
+                              className="btn btn-danger btn-sm"
+                              onClick={() => handleToggleActive(s)}
+                              title="Deactivate"
+                            >
+                              <Icon name="close" size={13} />
+                            </button>
+                          )}
                         </>
                       ) : (
                         <>
-                          <button
-                            className="btn btn-success btn-sm"
-                            onClick={() => handleToggleActive(s)}
-                            title="Reactivate"
-                          >
-                            <Icon name="check" size={13} />
-                          </button>
-                          <button
-                            className="btn btn-danger btn-sm"
-                            onClick={() => handleDeleteStudent(s)}
-                            title="Delete Student"
-                          >
-                            <Icon name="trash" size={13} />
-                          </button>
+                          {!subAdminLoggedIn && (
+                            <>
+                              <button
+                                className="btn btn-success btn-sm"
+                                onClick={() => handleToggleActive(s)}
+                                title="Reactivate"
+                              >
+                                <Icon name="check" size={13} />
+                              </button>
+                              <button
+                                className="btn btn-danger btn-sm"
+                                onClick={() => handleDeleteStudent(s)}
+                                title="Delete Student"
+                              >
+                                <Icon name="trash" size={13} />
+                              </button>
+                            </>
+                          )}
                         </>
                       )}
                     </div>

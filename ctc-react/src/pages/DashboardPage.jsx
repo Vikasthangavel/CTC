@@ -7,8 +7,10 @@ import {
 import Loader from '../components/Loader';
 import Icon from '../components/Icon';
 import { useToast } from '../components/Toast';
+import { useAuth } from '../context/AuthContext';
 
 export default function DashboardPage() {
+  const { subAdminLoggedIn } = useAuth();
   const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [students, setStudents] = useState([]);
@@ -190,9 +192,11 @@ export default function DashboardPage() {
                     </div>
                     <p style={{ margin: 0, fontSize: '0.88rem', opacity: 0.85 }}>{inst.message}</p>
                   </div>
-                  <button className="btn btn-danger btn-sm" onClick={() => handleDelete(inst.id)} title="Delete">
-                    <Icon name="trash" size={13} />
-                  </button>
+                  {!subAdminLoggedIn && (
+                    <button className="btn btn-danger btn-sm" onClick={() => handleDelete(inst.id)} title="Delete">
+                      <Icon name="trash" size={13} />
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
