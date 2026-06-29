@@ -403,6 +403,19 @@ export async function getPunchRecord(studentId, date) {
   return snap.exists() ? { id: snap.id, ...snap.data() } : null;
 }
 
+export async function updatePunchTimes(studentId, date, punchInStr, punchOutStr) {
+  const ref = doc(db, 'punches', punchDocId(date, studentId));
+  const data = { updated_at: serverTimestamp() };
+  if (punchInStr !== undefined) data.punch_in = punchInStr;
+  if (punchOutStr !== undefined) data.punch_out = punchOutStr;
+  
+  await setDoc(ref, {
+    student_id: studentId,
+    date,
+    ...data
+  }, { merge: true });
+}
+
 // Get all punch records for a given date (for admin attendance view)
 export async function getPunchesByDate(date) {
   const q = query(collection(db, 'punches'), where('date', '==', date));

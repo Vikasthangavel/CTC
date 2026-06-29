@@ -1,11 +1,34 @@
 import { useState, useEffect } from 'react';
 import {
   getStudents, getAttendanceByDate, saveBulkAttendance,
-  getMonthlyAttendanceStats, getPunchesByDate, punchIn, punchOut, resetPunch
+  getMonthlyAttendanceStats, getPunchesByDate, punchIn, punchOut, resetPunch, updatePunchTimes
 } from '../services/firestore';
 import Loader from '../components/Loader';
 import Icon from '../components/Icon';
 import { useToast } from '../components/Toast';
+
+function to24Hour(time12h) {
+  if (!time12h) return '';
+  const match = String(time12h).match(/(\d+):(\d+)\s*(am|pm|AM|PM)?/);
+  if (!match) return time12h;
+  let [_, hours, minutes, modifier] = match;
+  if (!modifier) return `${hours.padStart(2, '0')}:${minutes}`;
+  modifier = modifier.toLowerCase();
+  if (hours === '12') hours = '00';
+  if (modifier === 'pm') hours = String(parseInt(hours, 10) + 12);
+  return `${hours.padStart(2, '0')}:${minutes}`;
+}
+
+function to12Hour(time24h) {
+  if (!time24h) return null;
+  let [hours, minutes] = time24h.split(':');
+  if (!hours || !minutes) return time24h;
+  const h = parseInt(hours, 10);
+  const modifier = h >= 12 ? 'pm' : 'am';
+  let hours12 = h % 12;
+  if (hours12 === 0) hours12 = 12;
+  return `${String(hours12).padStart(2, '0')}:${minutes} ${modifier}`;
+}
 
 export default function AttendancePage() {
   const { showToast } = useToast();
@@ -22,6 +45,9 @@ export default function AttendancePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [punchingId, setPunchingId] = useState(null); // which student is being punched
+  const [editingPunchId, setEditingPunchId] = useState(null);
+  const [editPunchIn, setEditPunchIn] = useState('');
+  const [editPunchOut, setEditPunchOut] = useState('');
 
   useEffect(() => { loadStudents(); }, []);
   useEffect(() => { if (students.length > 0) { loadAttendance(); loadPunches(); } }, [selectedDate, students]);
@@ -109,6 +135,29 @@ export default function AttendancePage() {
     } catch {
       showToast('Failed to reset', 'danger');
     } finally { setPunchingId(null); }
+  }
+
+  function handleEditPunchClick(studentId) {
+    const punch = punches[studentId] || {};
+    setEditPunchIn(to24Hour(punch.punch_in));
+    setEditPunchOut(to24Hour(punch.punch_out));
+    setEditingPunchId(studentId);
+  }
+
+  async function handleSavePunchEdit(studentId) {
+    setPunchingId(studentId);
+    try {
+      const pIn = editPunchIn ? to12Hour(editPunchIn) : null;
+      const pOut = editPunchOut ? to12Hour(editPunchOut) : null;
+      await updatePunchTimes(studentId, selectedDate, pIn, pOut);
+      showToast('Punch times updated', 'success');
+      setEditingPunchId(null);
+      await loadPunches();
+    } catch {
+      showToast('Failed to update punch times', 'danger');
+    } finally {
+      setPunchingId(null);
+    }
   }
 
   const dailyStats = {
@@ -240,16 +289,43 @@ export default function AttendancePage() {
                   </div>
 
                   {/* Row 2: Punch section */}
-                  {!hasPunchIn ? (
-                    <button
-                      className="btn btn-info btn-sm"
-                      style={{ gap: '6px', width: '100%' }}
-                      onClick={() => handlePunchIn(s.id)}
-                      disabled={isPunching}
-                    >
-                      <Icon name="arrowRight" size={13} />
-                      {isPunching ? 'Punching...' : 'Punch In'}
-                    </button>
+                  {editingPunchId === s.id ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', background: 'var(--bg-light)', padding: '8px', borderRadius: '8px', marginTop: '8px' }}>
+                      <div style={{ flex: 1, minWidth: '150px' }}>
+                        <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Punch In</label>
+                        <input type="time" className="form-control" value={editPunchIn} onChange={e => setEditPunchIn(e.target.value)} style={{ padding: '4px', fontSize: '0.85rem' }} />
+                      </div>
+                      <div style={{ flex: 1, minWidth: '150px' }}>
+                        <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Punch Out</label>
+                        <input type="time" className="form-control" value={editPunchOut} onChange={e => setEditPunchOut(e.target.value)} style={{ padding: '4px', fontSize: '0.85rem' }} />
+                      </div>
+                      <div style={{ display: 'flex', gap: '6px', width: '100%', marginTop: '4px' }}>
+                        <button className="btn btn-primary btn-sm" style={{ flex: 1 }} onClick={() => handleSavePunchEdit(s.id)} disabled={isPunching}>
+                          {isPunching ? 'Saving...' : 'Save'}
+                        </button>
+                        <button className="btn btn-secondary btn-sm" style={{ flex: 1 }} onClick={() => setEditingPunchId(null)}>Cancel</button>
+                      </div>
+                    </div>
+                  ) : !hasPunchIn ? (
+                    <div style={{ display: 'flex', gap: '6px', width: '100%' }}>
+                      <button
+                        className="btn btn-info btn-sm"
+                        style={{ gap: '6px', flex: 1 }}
+                        onClick={() => handlePunchIn(s.id)}
+                        disabled={isPunching}
+                      >
+                        <Icon name="arrowRight" size={13} />
+                        {isPunching ? 'Punching...' : 'Punch In'}
+                      </button>
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        style={{ padding: '4px 12px' }}
+                        onClick={() => handleEditPunchClick(s.id)}
+                        disabled={isPunching}
+                      >
+                        <Icon name="edit" size={13} />
+                      </button>
+                    </div>
                   ) : (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                       {/* Times */}
@@ -285,6 +361,12 @@ export default function AttendancePage() {
                           onClick={() => handleResetPunch(s.id)}
                           disabled={isPunching}
                         >Reset</button>
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          style={{ padding: '4px 8px', fontSize: '0.72rem' }}
+                          onClick={() => handleEditPunchClick(s.id)}
+                          disabled={isPunching}
+                        >Edit</button>
                       </div>
                     </div>
                   )}
