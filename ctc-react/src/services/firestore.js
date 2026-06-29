@@ -4,7 +4,7 @@
 import {
   collection, doc, addDoc, updateDoc, deleteDoc, getDocs,
   getDoc, setDoc, query, where, orderBy, limit, serverTimestamp, writeBatch,
-  startAfter, increment
+  startAfter, increment, deleteField
 } from 'firebase/firestore';
 import { db } from '../firebase';
 
@@ -104,6 +104,7 @@ export async function saveBulkAttendance(date, statusMap) {
   const batch = writeBatch(db);
   const allStudentIds = new Set([...Object.keys(oldStatuses), ...Object.keys(statusMap)]);
 
+  const statusesToSave = {};
   for (const sId of allStudentIds) {
     const sOld = oldStatuses[sId];
     const sNew = statusMap[sId];
@@ -114,14 +115,17 @@ export async function saveBulkAttendance(date, statusMap) {
     if (sOld === undefined && sNew !== undefined) {
       deltaTotal = 1;
       if (sNew === 'Present') deltaPresent = 1;
+      statusesToSave[sId] = sNew;
     } else if (sOld !== undefined && sNew === undefined) {
       deltaTotal = -1;
       if (sOld === 'Present') deltaPresent = -1;
+      statusesToSave[sId] = deleteField();
     } else if (sOld !== undefined && sNew !== undefined) {
       if (sOld !== sNew) {
         if (sNew === 'Present') deltaPresent = 1;
         else if (sOld === 'Present') deltaPresent = -1;
       }
+      statusesToSave[sId] = sNew;
     }
 
     if (deltaTotal !== 0 || deltaPresent !== 0) {
@@ -135,11 +139,12 @@ export async function saveBulkAttendance(date, statusMap) {
 
   batch.set(ref, {
     date: date,
-    statuses: statusMap
+    statuses: statusesToSave
   }, { merge: true });
 
   await batch.commit();
 }
+
 
 export async function getMonthlyAttendanceStats(month, students) {
   // month = 'YYYY-MM'

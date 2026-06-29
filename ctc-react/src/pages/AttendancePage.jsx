@@ -77,7 +77,14 @@ export default function AttendancePage() {
   }
 
   function setStatus(studentId, status) {
-    setAttendance(prev => ({ ...prev, [studentId]: status }));
+    setAttendance(prev => {
+      if (prev[studentId] === status) {
+        const next = { ...prev };
+        delete next[studentId];
+        return next;
+      }
+      return { ...prev, [studentId]: status };
+    });
   }
 
   async function handleSave() {
