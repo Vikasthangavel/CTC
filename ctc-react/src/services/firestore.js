@@ -17,6 +17,7 @@ export async function getStudents(activeOnly = true) {
   const snap = await getDocs(col);
   let students = snap2arr(snap);
   if (activeOnly) students = students.filter(s => s.is_active !== false);
+  students.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
   return students;
 }
 
