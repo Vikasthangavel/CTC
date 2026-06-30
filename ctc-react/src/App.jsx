@@ -57,8 +57,8 @@ function AppRoutes() {
         <Route path="/students/:id/edit" element={<SuperAdminRoute><EditStudentPage /></SuperAdminRoute>} />
         <Route path="/students/:studentId/report" element={<AdminRoute><ActivityReportPage /></AdminRoute>} />
         <Route path="/attendance" element={<AdminRoute><AttendancePage /></AdminRoute>} />
-        <Route path="/fees" element={<AdminRoute><FeesPage /></AdminRoute>} />
-        <Route path="/fees/student/:studentId" element={<AdminRoute><StudentFeesPage /></AdminRoute>} />
+        <Route path="/fees" element={<SuperAdminRoute><FeesPage /></SuperAdminRoute>} />
+        <Route path="/fees/student/:studentId" element={<SuperAdminRoute><StudentFeesPage /></SuperAdminRoute>} />
         <Route path="/reports" element={<AdminRoute><AllReportsPage /></AdminRoute>} />
         <Route path="/analytics" element={<AdminRoute><AnalyticsPage /></AdminRoute>} />
 

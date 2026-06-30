@@ -119,12 +119,14 @@ export default function DashboardPage() {
           <div className="stat-card__label">Attendance</div>
           <Link to="/attendance" className="btn btn-info btn-sm" style={{ marginTop: '4px' }}>Mark Today</Link>
         </div>
-        <div className="col stat-card">
-          <div className="stat-card__icon warning"><Icon name="fees" size={24} /></div>
-          <div className="stat-card__number text-warning" style={{ fontSize: '1.2rem' }}>Fees</div>
-          <div className="stat-card__label">Fee Management</div>
-          <Link to="/fees" className="btn btn-warning btn-sm" style={{ marginTop: '4px' }}>Manage</Link>
-        </div>
+        {!subAdminLoggedIn && (
+          <div className="col stat-card">
+            <div className="stat-card__icon warning"><Icon name="fees" size={24} /></div>
+            <div className="stat-card__number text-warning" style={{ fontSize: '1.2rem' }}>Fees</div>
+            <div className="stat-card__label">Fee Management</div>
+            <Link to="/fees" className="btn btn-warning btn-sm" style={{ marginTop: '4px' }}>Manage</Link>
+          </div>
+        )}
       </div>
 
       {/* Instructions Row */}

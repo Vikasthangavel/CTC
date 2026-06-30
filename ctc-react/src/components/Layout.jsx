@@ -20,7 +20,7 @@ export default function Layout({ children }) {
     { to: '/dashboard',  icon: 'home',     label: 'Home' },
     { to: '/students',   icon: 'students', label: 'Students' },
     { to: '/attendance', icon: 'attend',   label: 'Attendance' },
-    { to: '/fees',       icon: 'fees',     label: 'Fees' },
+    ...(!subAdminLoggedIn ? [{ to: '/fees',       icon: 'fees',     label: 'Fees' }] : []),
     { to: '/reports',    icon: 'reports',  label: 'Reports' },
     { to: '/analytics',  icon: 'chart',    label: 'Analytics' },
   ];

@@ -10,9 +10,9 @@ import { useToast } from '../components/Toast';
 
 const BLOOD_GROUPS = ['A+','A-','B+','B-','AB+','AB-','O+','O-'];
 
-function AddStudentModal({ onClose, onSaved }) {
+function AddStudentModal({ subAdminLoggedIn, onClose, onSaved }) {
   const { showToast } = useToast();
-  const [form, setForm] = useState({ name:'', grade:'', parent_name:'', parent_contact:'', monthly_fee:'', dob:'', blood_group:'' });
+  const [form, setForm] = useState({ name:'', grade:'', parent_name:'', parent_contact:'', monthly_fee: 0, dob:'', blood_group:'' });
   const [saving, setSaving] = useState(false);
 
   const handle = e => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
@@ -21,7 +21,7 @@ function AddStudentModal({ onClose, onSaved }) {
     e.preventDefault();
     setSaving(true);
     try {
-      await addStudent({ ...form, grade: Number(form.grade), monthly_fee: Number(form.monthly_fee) });
+      await addStudent({ ...form, grade: Number(form.grade), monthly_fee: Number(form.monthly_fee) || 0 });
       showToast('Student added!', 'success');
       onSaved();
     } catch {
@@ -53,7 +53,9 @@ function AddStudentModal({ onClose, onSaved }) {
           </div>
           <div className="form-group"><label className="form-label">Parent Name</label><input name="parent_name" className="form-control" value={form.parent_name} onChange={handle} required /></div>
           <div className="form-group"><label className="form-label">Parent Contact (Phone)</label><input name="parent_contact" type="tel" className="form-control" value={form.parent_contact} onChange={handle} required /></div>
-          <div className="form-group"><label className="form-label">Monthly Fee (₹)</label><input name="monthly_fee" type="number" className="form-control" value={form.monthly_fee} onChange={handle} required /></div>
+          {!subAdminLoggedIn && (
+            <div className="form-group"><label className="form-label">Monthly Fee (₹)</label><input name="monthly_fee" type="number" className="form-control" value={form.monthly_fee} onChange={handle} required /></div>
+          )}
           <div className="modal-footer">
             <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
             <button type="submit" className="btn btn-success" disabled={saving}>
@@ -209,7 +211,7 @@ export default function StudentsPage() {
   return (
     <>
       {showAddModal && (
-        <AddStudentModal onClose={() => setShowAddModal(false)} onSaved={() => { setShowAddModal(false); fetchAll(); }} />
+        <AddStudentModal subAdminLoggedIn={subAdminLoggedIn} onClose={() => setShowAddModal(false)} onSaved={() => { setShowAddModal(false); fetchAll(); }} />
       )}
       {activityStudent && (
         <ActivityModal student={activityStudent} onClose={() => setActivityStudent(null)} onSaved={() => { setActivityStudent(null); showToast('Activity saved!', 'success'); }} />

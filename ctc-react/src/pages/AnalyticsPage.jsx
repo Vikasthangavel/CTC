@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getAnalyticsData } from '../services/firestore';
 import Loader from '../components/Loader';
 import Icon from '../components/Icon';
+import { useAuth } from '../context/AuthContext';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -31,6 +32,7 @@ ChartJS.register(
 
 export default function AnalyticsPage() {
   const navigate = useNavigate();
+  const { subAdminLoggedIn } = useAuth();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
 
@@ -159,19 +161,21 @@ export default function AnalyticsPage() {
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '24px' }}>
         {/* Fees Collection Chart */}
-        <div className="card">
-          <div style={{ marginBottom: '16px' }}>
-            <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>Monthly Fee Collections</h3>
-            <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>Historical payment collection volumes matching all marked fees.</p>
+        {!subAdminLoggedIn && (
+          <div className="card">
+            <div style={{ marginBottom: '16px' }}>
+              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>Monthly Fee Collections</h3>
+              <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>Historical payment collection volumes matching all marked fees.</p>
+            </div>
+            <div style={{ height: '320px', position: 'relative' }}>
+              {data.fees.months.length === 0 ? (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)' }}>No fee data available</div>
+              ) : (
+                <Bar data={feeChartData} options={feeOptions} />
+              )}
+            </div>
           </div>
-          <div style={{ height: '320px', position: 'relative' }}>
-            {data.fees.months.length === 0 ? (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)' }}>No fee data available</div>
-            ) : (
-              <Bar data={feeChartData} options={feeOptions} />
-            )}
-          </div>
-        </div>
+        )}
 
         {/* Attendance Rate Chart */}
         <div className="card">
