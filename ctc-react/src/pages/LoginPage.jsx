@@ -35,6 +35,12 @@ export default function LoginPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    if (phone.length !== 10) {
+      setError('Phone number must be exactly 10 digits.');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -99,8 +105,11 @@ export default function LoginPage() {
                   <label className="form-label">Phone Number</label>
                   <input
                     type="tel" className="form-control form-control-lg"
-                    value={phone} onChange={e => setPhone(e.target.value)}
+                    value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                     placeholder="Enter your mobile number"
+                    maxLength={10}
+                    pattern="[0-9]{10}"
+                    title="Phone number must be exactly 10 digits"
                     required readOnly={adminMode}
                   />
                 </div>
