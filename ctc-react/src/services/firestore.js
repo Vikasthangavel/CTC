@@ -61,19 +61,29 @@ export async function getStudentByParentPhone(phone) {
   // Try exact match first
   const q1 = query(collection(db, 'students'), where('parent_contact', '==', phone));
   const snap1 = await getDocs(q1);
-  if (!snap1.empty) return snap2arr(snap1);
+  if (!snap1.empty) {
+    const students = snap2arr(snap1);
+    students.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    return students;
+  }
 
   // Try normalized (10-digit) match
   if (normalized !== phone) {
     const q2 = query(collection(db, 'students'), where('parent_contact', '==', normalized));
     const snap2 = await getDocs(q2);
-    if (!snap2.empty) return snap2arr(snap2);
+    if (!snap2.empty) {
+      const students = snap2arr(snap2);
+      students.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+      return students;
+    }
   }
 
   // Fallback: load all and filter client-side (handles any format mismatch)
   const allSnap = await getDocs(collection(db, 'students'));
   const all = snap2arr(allSnap);
-  return all.filter(s => normalizePhone(s.parent_contact) === normalized);
+  const students = all.filter(s => normalizePhone(s.parent_contact) === normalized);
+  students.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+  return students;
 }
 
 // ─── ATTENDANCE ─────────────────────────────────────────────
