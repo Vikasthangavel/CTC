@@ -284,15 +284,18 @@ export async function addActivity(studentId, activityDate, content) {
 }
 
 export async function getActivitiesByMonth(studentId, month) {
-  // No orderBy to avoid requiring a composite index — sort client-side
+  // Filter and sort client-side to avoid composite indexes
   const q = query(
     collection(db, 'activities'),
-    where('student_id', '==', studentId),
-    where('activity_date', '>=', month + '-01'),
-    where('activity_date', '<=', month + '-31')
+    where('student_id', '==', studentId)
   );
   const snap = await getDocs(q);
-  return snap2arr(snap).sort((a, b) => b.activity_date.localeCompare(a.activity_date));
+  const startStr = month + '-01';
+  const endStr = month + '-31';
+  
+  return snap2arr(snap)
+    .filter(a => a.activity_date >= startStr && a.activity_date <= endStr)
+    .sort((a, b) => b.activity_date.localeCompare(a.activity_date));
 }
 
 export async function getRecentActivities(studentId, limitN = 2) {
