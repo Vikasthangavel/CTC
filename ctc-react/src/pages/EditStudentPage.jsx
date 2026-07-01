@@ -5,7 +5,7 @@ import Loader from '../components/Loader';
 import Icon from '../components/Icon';
 import { useToast } from '../components/Toast';
 
-const BLOOD_GROUPS = ['A+','A-','B+','B-','AB+','AB-','O+','O-'];
+const BLOOD_GROUPS = ['A+','A-','B+','B-','AB+','AB-','O+','O-','A1B+'];
 
 export default function EditStudentPage() {
   const { id } = useParams();
