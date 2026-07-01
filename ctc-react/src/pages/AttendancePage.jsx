@@ -105,11 +105,11 @@ export default function AttendancePage() {
     try {
       await punchIn(studentId, selectedDate);
       showToast('Punched In!', 'success');
-      
+
       // Auto-mark present when punching in
       const nextAttendance = { ...attendance };
       nextAttendance[studentId] = 'Present';
-      
+
       setAttendance(nextAttendance);
       await saveBulkAttendance(selectedDate, nextAttendance);
       await loadPunches();
@@ -165,8 +165,8 @@ export default function AttendancePage() {
   }
 
   const dailyStats = {
-    present:   Object.values(attendance).filter(s => s === 'Present').length,
-    absent:    Object.values(attendance).filter(s => s === 'Absent').length,
+    present: Object.values(attendance).filter(s => s === 'Present').length,
+    absent: Object.values(attendance).filter(s => s === 'Absent').length,
     notMarked: students.length - Object.keys(attendance).length,
   };
 
@@ -232,8 +232,8 @@ export default function AttendancePage() {
           {/* Daily Stats */}
           <div className="row mb-4" style={{ gap: '10px' }}>
             {[
-              { label: 'Present',    value: dailyStats.present,   color: 'var(--success)' },
-              { label: 'Absent',     value: dailyStats.absent,    color: 'var(--danger)' },
+              { label: 'Present', value: dailyStats.present, color: 'var(--success)' },
+              { label: 'Absent', value: dailyStats.absent, color: 'var(--danger)' },
               { label: 'Not Marked', value: dailyStats.notMarked, color: 'var(--text-muted)' },
             ].map(({ label, value, color }) => (
               <div key={label} className="col stat-card" style={{ flex: '1' }}>
