@@ -50,6 +50,7 @@ export default function AttendancePage() {
   const [editingPunchId, setEditingPunchId] = useState(null);
   const [editPunchIn, setEditPunchIn] = useState('');
   const [editPunchOut, setEditPunchOut] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => { loadStudents(); }, []);
   useEffect(() => { if (students.length > 0) { loadAttendance(); loadPunches(); } }, [selectedDate, students]);
@@ -168,7 +169,20 @@ export default function AttendancePage() {
     present: Object.values(attendance).filter(s => s === 'Present').length,
     absent: Object.values(attendance).filter(s => s === 'Absent').length,
     notMarked: students.length - Object.keys(attendance).length,
+    needPunchOut: Object.values(punches).filter(p => p.punch_in && !p.punch_out).length,
   };
+
+  const studentsWithSno = students.map((s, i) => ({ ...s, sno: i + 1 }));
+  const filteredStudents = studentsWithSno.filter(s =>
+    s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    String(s.sno) === searchQuery
+  );
+
+  const monthlyStatsWithSno = monthlyStats.map((stat, i) => ({ ...stat, sno: i + 1 }));
+  const filteredMonthlyStats = monthlyStatsWithSno.filter(stat =>
+    stat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    String(stat.sno) === searchQuery
+  );
 
   if (loading) return <Loader />;
 
@@ -187,9 +201,15 @@ export default function AttendancePage() {
         <div className="card mb-4">
           <div className="card-header"><Icon name="chart" size={16} /> Monthly Statistics</div>
           <div className="card-body">
-            <div className="form-group" style={{ maxWidth: '200px', marginBottom: '16px' }}>
-              <label className="form-label">Select Month</label>
-              <input type="month" className="form-control" value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)} />
+            <div style={{ display: 'flex', gap: '16px', marginBottom: '16px', flexWrap: 'wrap' }}>
+              <div className="form-group" style={{ flex: '1', minWidth: '150px', maxWidth: '200px' }}>
+                <label className="form-label">Select Month</label>
+                <input type="month" className="form-control" value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)} />
+              </div>
+              <div className="form-group" style={{ flex: '1', minWidth: '200px', maxWidth: '300px' }}>
+                <label className="form-label">Search Student</label>
+                <input type="text" className="form-control" placeholder="Search by name or S.No..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+              </div>
             </div>
             <div className="table-wrapper">
               <table>
@@ -199,9 +219,9 @@ export default function AttendancePage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {monthlyStats.map((stat, i) => (
+                  {filteredMonthlyStats.map((stat, i) => (
                     <tr key={i}>
-                      <td>{i + 1}</td>
+                      <td>{stat.sno}</td>
                       <td>{stat.name}</td>
                       <td>{stat.grade}</td>
                       <td>{stat.present}</td>
@@ -211,8 +231,8 @@ export default function AttendancePage() {
                       </td>
                     </tr>
                   ))}
-                  {monthlyStats.length === 0 && (
-                    <tr><td colSpan="6" style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '24px' }}>No data for this month.</td></tr>
+                  {filteredMonthlyStats.length === 0 && (
+                    <tr><td colSpan="6" style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '24px' }}>No data found.</td></tr>
                   )}
                 </tbody>
               </table>
@@ -224,9 +244,15 @@ export default function AttendancePage() {
       {/* ── Mark Attendance + Punch ── */}
       {view === 'mark' && (
         <>
-          <div className="form-group" style={{ maxWidth: '200px', marginBottom: '20px' }}>
-            <label className="form-label">Select Date</label>
-            <input type="date" className="form-control" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} />
+          <div style={{ display: 'flex', gap: '16px', marginBottom: '20px', flexWrap: 'wrap' }}>
+            <div className="form-group" style={{ flex: '1', minWidth: '150px', maxWidth: '200px' }}>
+              <label className="form-label">Select Date</label>
+              <input type="date" className="form-control" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} />
+            </div>
+            <div className="form-group" style={{ flex: '1', minWidth: '200px', maxWidth: '300px' }}>
+              <label className="form-label">Search Student</label>
+              <input type="text" className="form-control" placeholder="Search by name or S.No..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+            </div>
           </div>
 
           {/* Daily Stats */}
@@ -235,6 +261,7 @@ export default function AttendancePage() {
               { label: 'Present', value: dailyStats.present, color: 'var(--success)' },
               { label: 'Absent', value: dailyStats.absent, color: 'var(--danger)' },
               { label: 'Not Marked', value: dailyStats.notMarked, color: 'var(--text-muted)' },
+              { label: 'Need Punch Out', value: dailyStats.needPunchOut, color: 'var(--warning)' },
             ].map(({ label, value, color }) => (
               <div key={label} className="col stat-card" style={{ flex: '1' }}>
                 <div className="stat-card__number" style={{ color }}>{value}</div>
@@ -254,7 +281,7 @@ export default function AttendancePage() {
 
           {/* Student List */}
           <div className="card" style={{ overflow: 'hidden' }}>
-            {students.map((s, idx) => {
+            {filteredStudents.map((s, idx) => {
               const status = attendance[s.id];
               const punch = punches[s.id] || {};
               const hasPunchIn = !!punch.punch_in;
@@ -263,7 +290,7 @@ export default function AttendancePage() {
 
               return (
                 <div key={s.id} style={{
-                  borderBottom: idx < students.length - 1 ? '1px solid var(--border)' : 'none',
+                  borderBottom: idx < filteredStudents.length - 1 ? '1px solid var(--border)' : 'none',
                   borderLeft: `4px solid ${status === 'Present' ? 'var(--success)' : status === 'Absent' ? 'var(--danger)' : 'transparent'}`,
                   padding: '14px 14px 14px 12px',
                   transition: 'border-color 0.2s',
@@ -272,7 +299,7 @@ export default function AttendancePage() {
                   {/* Row 1: Name + badge + present/absent */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px', flexWrap: 'wrap' }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>{idx + 1}. {s.name}</span>
+                      <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>{s.sno}. {s.name}</span>
                       <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginLeft: '8px' }}>Gr. {s.grade}</span>
                     </div>
                     <span className={`badge ${status === 'Present' ? 'badge-success' : status === 'Absent' ? 'badge-danger' : 'badge-secondary'}`}>
@@ -387,7 +414,7 @@ export default function AttendancePage() {
             })}
           </div>
 
-          {students.length === 0 && (
+          {filteredStudents.length === 0 && (
             <div className="card" style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted)' }}>
               No active students found.
             </div>
