@@ -195,12 +195,13 @@ export default function AttendancePage() {
               <table>
                 <thead>
                   <tr>
-                    <th>Student</th><th>Grade</th><th>Present</th><th>Total</th><th>%</th>
+                    <th>S.No</th><th>Student</th><th>Grade</th><th>Present</th><th>Total</th><th>%</th>
                   </tr>
                 </thead>
                 <tbody>
                   {monthlyStats.map((stat, i) => (
                     <tr key={i}>
+                      <td>{i + 1}</td>
                       <td>{stat.name}</td>
                       <td>{stat.grade}</td>
                       <td>{stat.present}</td>
@@ -211,7 +212,7 @@ export default function AttendancePage() {
                     </tr>
                   ))}
                   {monthlyStats.length === 0 && (
-                    <tr><td colSpan="5" style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '24px' }}>No data for this month.</td></tr>
+                    <tr><td colSpan="6" style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '24px' }}>No data for this month.</td></tr>
                   )}
                 </tbody>
               </table>
@@ -271,7 +272,7 @@ export default function AttendancePage() {
                   {/* Row 1: Name + badge + present/absent */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px', flexWrap: 'wrap' }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>{s.name}</span>
+                      <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>{idx + 1}. {s.name}</span>
                       <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginLeft: '8px' }}>Gr. {s.grade}</span>
                     </div>
                     <span className={`badge ${status === 'Present' ? 'badge-success' : status === 'Absent' ? 'badge-danger' : 'badge-secondary'}`}>
