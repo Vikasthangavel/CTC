@@ -25,7 +25,7 @@ export default function ParentHomePage() {
           getStudentAttendanceStats(s.id),
           getPunchRecord(s.id, today, 'Morning'),
           getPunchRecord(s.id, today, 'Evening'),
-          getStudentPunches(s.id, 14), // Last 14 punches
+          getStudentPunches(s.id, 8), // Last 8 punches (7 previous + potentially today)
         ]);
         const todayPunch = punchEvening || punchMorning || null;
         return { student: s, stats, punch: todayPunch, history: history.filter(p => p.date !== today) };
@@ -149,7 +149,7 @@ export default function ParentHomePage() {
                   Previous Days Timing
                 </div>
                 <div className="list-group">
-                  {history.map((h, i) => (
+                  {history.slice(0, 7).map((h, i) => (
                     <div key={i} className="list-group-item" style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 12px', fontSize: '0.85rem', alignItems: 'center' }}>
                       <div style={{ fontWeight: 600 }}>{h.date} <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginLeft: '4px' }}>({h.session || 'Evening'})</span></div>
                       <div style={{ display: 'flex', gap: '12px' }}>
