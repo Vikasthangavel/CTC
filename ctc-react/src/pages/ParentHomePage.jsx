@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import {
   getStudentByParentPhone, getStudentAttendanceStats,
-  getInstructionsForParent, getPunchRecord
+  getInstructionsForParent, getPunchRecord, getStudentPunches
 } from '../services/firestore';
 import Loader from '../components/Loader';
 import Icon from '../components/Icon';
@@ -21,11 +21,14 @@ export default function ParentHomePage() {
     try {
       const students = await getStudentByParentPhone(parentPhone);
       const data = await Promise.all(students.map(async s => {
-        const [stats, punch] = await Promise.all([
+        const [stats, punchMorning, punchEvening, history] = await Promise.all([
           getStudentAttendanceStats(s.id),
-          getPunchRecord(s.id, today),
+          getPunchRecord(s.id, today, 'Morning'),
+          getPunchRecord(s.id, today, 'Evening'),
+          getStudentPunches(s.id, 14), // Last 14 punches
         ]);
-        return { student: s, stats, punch };
+        const todayPunch = punchEvening || punchMorning || null;
+        return { student: s, stats, punch: todayPunch, history: history.filter(p => p.date !== today) };
       }));
       const ids = students.map(s => s.id);
       const grades = students.map(s => s.grade);
@@ -81,7 +84,7 @@ export default function ParentHomePage() {
       )}
 
       {/* Each Child */}
-      {childrenData.map(({ student, stats, punch }) => (
+      {childrenData.map(({ student, stats, punch, history }) => (
         <div key={student.id} className="card mb-4">
           {/* Child Header */}
           <div className="card-header" style={{ background: 'var(--primary-light)' }}>
@@ -126,7 +129,7 @@ export default function ParentHomePage() {
             <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: 'var(--text-muted)', marginBottom: '8px' }}>
               Attendance (Overall)
             </div>
-            <div className="row" style={{ gap: '8px' }}>
+            <div className="row" style={{ gap: '8px', marginBottom: '16px' }}>
               {[
                 { label: 'Total',   value: stats.total,       color: 'var(--text)' },
                 { label: 'Present', value: stats.present,     color: 'var(--success)' },
@@ -138,6 +141,26 @@ export default function ParentHomePage() {
                 </div>
               ))}
             </div>
+
+            {/* Punch History */}
+            {history && history.length > 0 && (
+              <div>
+                <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: 'var(--text-muted)', marginBottom: '8px' }}>
+                  Previous Days Timing
+                </div>
+                <div className="list-group">
+                  {history.map((h, i) => (
+                    <div key={i} className="list-group-item" style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 12px', fontSize: '0.85rem', alignItems: 'center' }}>
+                      <div style={{ fontWeight: 600 }}>{h.date} <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginLeft: '4px' }}>({h.session || 'Evening'})</span></div>
+                      <div style={{ display: 'flex', gap: '12px' }}>
+                        <span style={{ color: 'var(--success)', fontWeight: 600 }}>In: {h.punch_in || '—'}</span>
+                        <span style={{ color: h.punch_out ? 'var(--danger)' : 'var(--text-light)', fontWeight: 600 }}>Out: {h.punch_out || '—'}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
           </div>
         </div>
