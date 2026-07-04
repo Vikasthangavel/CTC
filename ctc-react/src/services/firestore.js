@@ -401,55 +401,68 @@ export async function getAllParentReports(lastVisibleDoc = null, limitN = 10) {
 }
 
 // ─── PUNCH IN / PUNCH OUT ─────────────────────────────────────────────
-// Doc ID = "{date}_{studentId}" for easy keyed lookup without composite indexes
+// Doc ID = "{date}_{session}_{studentId}" for easy keyed lookup without composite indexes
 
-function punchDocId(date, studentId) {
-  return `${date}_${studentId}`;
+async function getActualPunchDocId(date, session, studentId) {
+  if (session === 'Morning') {
+    const legacyId = `${date}_${studentId}`;
+    const legacyRef = doc(db, 'punches', legacyId);
+    const snap = await getDoc(legacyRef);
+    if (snap.exists()) return legacyId;
+  }
+  return `${date}_${session}_${studentId}`;
 }
 
 function nowTimeStr() {
   return new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
 }
 
-export async function punchIn(studentId, date) {
-  const ref = doc(db, 'punches', punchDocId(date, studentId));
+export async function punchIn(studentId, date, session) {
+  const docId = await getActualPunchDocId(date, session, studentId);
+  const ref = doc(db, 'punches', docId);
   await setDoc(ref, {
     student_id: studentId,
     date,
+    session,
     punch_in: nowTimeStr(),
     punch_out: null,
     updated_at: serverTimestamp(),
   }, { merge: true });
 }
 
-export async function punchOut(studentId, date) {
-  const ref = doc(db, 'punches', punchDocId(date, studentId));
+export async function punchOut(studentId, date, session) {
+  const docId = await getActualPunchDocId(date, session, studentId);
+  const ref = doc(db, 'punches', docId);
   await updateDoc(ref, {
     punch_out: nowTimeStr(),
     updated_at: serverTimestamp(),
   });
 }
 
-export async function resetPunch(studentId, date) {
-  const ref = doc(db, 'punches', punchDocId(date, studentId));
+export async function resetPunch(studentId, date, session) {
+  const docId = await getActualPunchDocId(date, session, studentId);
+  const ref = doc(db, 'punches', docId);
   await setDoc(ref, {
     student_id: studentId,
     date,
+    session,
     punch_in: null,
     punch_out: null,
     updated_at: serverTimestamp(),
   });
 }
 
-export async function getPunchRecord(studentId, date) {
-  const ref = doc(db, 'punches', punchDocId(date, studentId));
+export async function getPunchRecord(studentId, date, session) {
+  const docId = await getActualPunchDocId(date, session, studentId);
+  const ref = doc(db, 'punches', docId);
   const snap = await getDoc(ref);
   return snap.exists() ? { id: snap.id, ...snap.data() } : null;
 }
 
-export async function updatePunchTimes(studentId, date, punchInStr, punchOutStr) {
-  const ref = doc(db, 'punches', punchDocId(date, studentId));
-  const data = { updated_at: serverTimestamp() };
+export async function updatePunchTimes(studentId, date, session, punchInStr, punchOutStr) {
+  const docId = await getActualPunchDocId(date, session, studentId);
+  const ref = doc(db, 'punches', docId);
+  const data = { updated_at: serverTimestamp(), session };
   if (punchInStr !== undefined) data.punch_in = punchInStr;
   if (punchOutStr !== undefined) data.punch_out = punchOutStr;
   
@@ -460,12 +473,18 @@ export async function updatePunchTimes(studentId, date, punchInStr, punchOutStr)
   }, { merge: true });
 }
 
-// Get all punch records for a given date (for admin attendance view)
-export async function getPunchesByDate(date) {
+// Get all punch records for a given date and session (for admin attendance view)
+export async function getPunchesByDateAndSession(date, session) {
   const q = query(collection(db, 'punches'), where('date', '==', date));
   const snap = await getDocs(q);
   const map = {};
-  snap.docs.forEach(d => { map[d.data().student_id] = { id: d.id, ...d.data() }; });
+  snap.docs.forEach(d => {
+    const data = d.data();
+    const docSession = data.session || 'Morning';
+    if (docSession === session) {
+      map[data.student_id] = { id: d.id, ...data };
+    }
+  });
   return map;
 }
 
@@ -475,7 +494,12 @@ export async function getStudentPunches(studentId, limitN = 5) {
   const snap = await getDocs(q);
   return snap2arr(snap)
     .filter(p => p.punch_in)
-    .sort((a, b) => b.date.localeCompare(a.date))
+    .sort((a, b) => {
+      if (b.date !== a.date) return b.date.localeCompare(a.date);
+      const sessionA = a.session || 'Morning';
+      const sessionB = b.session || 'Morning';
+      return sessionB.localeCompare(sessionA);
+    })
     .slice(0, limitN);
 }
 

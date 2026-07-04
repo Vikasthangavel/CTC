@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
   getStudents, getAttendanceByDateAndSession, saveBulkAttendance,
-  getMonthlyAttendanceStats, getPunchesByDate, punchIn, punchOut, resetPunch, updatePunchTimes
+  getMonthlyAttendanceStats, getPunchesByDateAndSession, punchIn, punchOut, resetPunch, updatePunchTimes
 } from '../services/firestore';
 import Loader from '../components/Loader';
 import Icon from '../components/Icon';
@@ -39,7 +39,7 @@ export default function AttendancePage() {
 
   const [students, setStudents] = useState([]);
   const [selectedDate, setSelectedDate] = useState(today);
-  const [selectedSession, setSelectedSession] = useState('Morning');
+  const [selectedSession, setSelectedSession] = useState('Evening');
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
   const [attendance, setAttendance] = useState({});
   const [punches, setPunches] = useState({});   // { studentId: { punch_in, punch_out } }
@@ -71,7 +71,7 @@ export default function AttendancePage() {
   }
 
   async function loadPunches() {
-    const map = await getPunchesByDate(selectedDate);
+    const map = await getPunchesByDateAndSession(selectedDate, selectedSession);
     setPunches(map);
   }
 
@@ -105,7 +105,7 @@ export default function AttendancePage() {
   async function handlePunchIn(studentId) {
     setPunchingId(studentId);
     try {
-      await punchIn(studentId, selectedDate);
+      await punchIn(studentId, selectedDate, selectedSession);
       showToast('Punched In!', 'success');
 
       // Auto-mark present when punching in
@@ -123,7 +123,7 @@ export default function AttendancePage() {
   async function handlePunchOut(studentId) {
     setPunchingId(studentId);
     try {
-      await punchOut(studentId, selectedDate);
+      await punchOut(studentId, selectedDate, selectedSession);
       showToast('Punched Out!', 'success');
       await loadPunches();
     } catch {
@@ -135,7 +135,7 @@ export default function AttendancePage() {
     if (!confirm('Reset punch record for this student?')) return;
     setPunchingId(studentId);
     try {
-      await resetPunch(studentId, selectedDate);
+      await resetPunch(studentId, selectedDate, selectedSession);
       showToast('Punch reset', 'success');
       await loadPunches();
     } catch {
@@ -155,7 +155,7 @@ export default function AttendancePage() {
     try {
       const pIn = editPunchIn ? to12Hour(editPunchIn) : null;
       const pOut = editPunchOut ? to12Hour(editPunchOut) : null;
-      await updatePunchTimes(studentId, selectedDate, pIn, pOut);
+      await updatePunchTimes(studentId, selectedDate, selectedSession, pIn, pOut);
       showToast('Punch times updated', 'success');
       setEditingPunchId(null);
       await loadPunches();
