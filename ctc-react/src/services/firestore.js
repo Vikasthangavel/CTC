@@ -92,7 +92,7 @@ export async function getAttendanceByDateAndSession(date, session) {
   let ref = doc(db, 'attendance', refId);
   let snap = await getDoc(ref);
 
-  if (!snap.exists() && session === 'Morning') {
+  if (!snap.exists() && session === 'Evening') {
     const legacyRef = doc(db, 'attendance', date);
     const legacySnap = await getDoc(legacyRef);
     if (legacySnap.exists()) {
@@ -109,7 +109,7 @@ export async function getAttendanceByDateAndSession(date, session) {
         id: snap.id,
         student_id: studentId,
         date: data.date || date,
-        session: data.session || session,
+        session: data.session || 'Evening',
         status: status
       };
     });
@@ -124,7 +124,7 @@ export async function saveBulkAttendance(date, session, statusMap) {
   let oldSnap = await getDoc(ref);
 
   // Backward compatibility
-  if (!oldSnap.exists() && session === 'Morning') {
+  if (!oldSnap.exists() && session === 'Evening') {
     const legacyRef = doc(db, 'attendance', date);
     const legacySnap = await getDoc(legacyRef);
     if (legacySnap.exists()) {
@@ -404,7 +404,7 @@ export async function getAllParentReports(lastVisibleDoc = null, limitN = 10) {
 // Doc ID = "{date}_{session}_{studentId}" for easy keyed lookup without composite indexes
 
 async function getActualPunchDocId(date, session, studentId) {
-  if (session === 'Morning') {
+  if (session === 'Evening') {
     const legacyId = `${date}_${studentId}`;
     const legacyRef = doc(db, 'punches', legacyId);
     const snap = await getDoc(legacyRef);
@@ -480,7 +480,7 @@ export async function getPunchesByDateAndSession(date, session) {
   const map = {};
   snap.docs.forEach(d => {
     const data = d.data();
-    const docSession = data.session || 'Morning';
+    const docSession = data.session || 'Evening';
     if (docSession === session) {
       map[data.student_id] = { id: d.id, ...data };
     }
@@ -496,8 +496,8 @@ export async function getStudentPunches(studentId, limitN = 5) {
     .filter(p => p.punch_in)
     .sort((a, b) => {
       if (b.date !== a.date) return b.date.localeCompare(a.date);
-      const sessionA = a.session || 'Morning';
-      const sessionB = b.session || 'Morning';
+      const sessionA = a.session || 'Evening';
+      const sessionB = b.session || 'Evening';
       return sessionB.localeCompare(sessionA);
     })
     .slice(0, limitN);
