@@ -20,6 +20,7 @@ import ParentActivityPage from './pages/ParentActivityPage';
 import ParentFeesPage from './pages/ParentFeesPage';
 import ParentReportPage from './pages/ParentReportPage';
 import ParentActivityReportPage from './pages/ParentActivityReportPage';
+import DeveloperPage from './pages/DeveloperPage';
 
 function AdminRoute({ children }) {
   const { adminLoggedIn, subAdminLoggedIn } = useAuth();
@@ -36,8 +37,14 @@ function ParentRoute({ children }) {
   return parentPhone ? children : <Navigate to="/login" replace />;
 }
 
+function DeveloperRoute({ children }) {
+  const { developerLoggedIn } = useAuth();
+  return developerLoggedIn ? children : <Navigate to="/login" replace />;
+}
+
 function IndexRedirect() {
-  const { adminLoggedIn, subAdminLoggedIn, parentPhone } = useAuth();
+  const { adminLoggedIn, subAdminLoggedIn, parentPhone, developerLoggedIn } = useAuth();
+  if (developerLoggedIn) return <Navigate to="/developer" replace />;
   if (adminLoggedIn || subAdminLoggedIn) return <Navigate to="/dashboard" replace />;
   if (parentPhone) return <Navigate to="/parent" replace />;
   return <Navigate to="/login" replace />;
@@ -69,6 +76,9 @@ function AppRoutes() {
         <Route path="/parent/report" element={<ParentRoute><ParentReportPage /></ParentRoute>} />
         {/* Keep old full-report deep link */}
         <Route path="/parent/activity/:studentId" element={<ParentRoute><ParentActivityReportPage /></ParentRoute>} />
+
+        {/* Developer Routes */}
+        <Route path="/developer" element={<DeveloperRoute><DeveloperPage /></DeveloperRoute>} />
 
         {/* 404 */}
         <Route path="*" element={

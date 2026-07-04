@@ -8,42 +8,43 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase';
 
+// ─── DEVELOPER LOGGING ─────────────────────────────────────────────
+export async function logUserLogin(userType, identifier) {
+  try {
+    await addDoc(collection(db, 'login_logs'), {
+      user_type: userType,
+      identifier: identifier,
+      login_time: serverTimestamp()
+    });
+  } catch (e) {
+    console.error("Failed to log user login", e);
+  }
+}
+
+function withTryCatch(fnName, fn) {
+  return async (...args) => {
+    try {
+      return await fn(...args);
+    } catch (error) {
+      console.error(`Error in ${fnName}:`, error);
+      try {
+        await addDoc(collection(db, 'developer_errors'), {
+          function_name: fnName,
+          error_message: error.message,
+          stack_trace: error.stack,
+          arguments: JSON.stringify(args),
+          created_at: serverTimestamp()
+        });
+      } catch (e) {
+        console.error("Failed to log error", e);
+      }
+      throw error;
+    }
+  };
+}
+
 // ─── HELPERS ─────────────────────────────────────────────
 const snap2arr = (snap) => snap.docs.map(d => ({ id: d.id, ...d.data() }));
-
-// ─── STUDENTS ─────────────────────────────────────────────
-export async function getStudents(activeOnly = true) {
-  const col = collection(db, 'students');
-  const snap = await getDocs(col);
-  let students = snap2arr(snap);
-  if (activeOnly) students = students.filter(s => s.is_active !== false);
-  students.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-  return students;
-}
-
-export async function getStudent(id) {
-  const ref = doc(db, 'students', id);
-  const snap = await getDoc(ref);
-  return snap.exists() ? { id: snap.id, ...snap.data() } : null;
-}
-
-export async function addStudent(data) {
-  return await addDoc(collection(db, 'students'), {
-    ...data, is_active: true, created_at: serverTimestamp()
-  });
-}
-
-export async function updateStudent(id, data) {
-  await updateDoc(doc(db, 'students', id), data);
-}
-
-export async function deleteStudent(id) {
-  await deleteDoc(doc(db, 'students', id));
-}
-
-export async function toggleStudentActive(id, currentStatus) {
-  await updateDoc(doc(db, 'students', id), { is_active: !currentStatus });
-}
 
 function normalizePhone(raw) {
   // Strip spaces, dashes, dots
@@ -56,9 +57,46 @@ function normalizePhone(raw) {
   return p;
 }
 
-export async function getStudentByParentPhone(phone) {
+function nowTimeStr() {
+  return new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+}
+
+// ─── STUDENTS ─────────────────────────────────────────────
+export const getStudents = withTryCatch('getStudents', async (activeOnly = true) => {
+  const col = collection(db, 'students');
+  const snap = await getDocs(col);
+  let students = snap2arr(snap);
+  if (activeOnly) students = students.filter(s => s.is_active !== false);
+  students.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+  return students;
+});
+
+export const getStudent = withTryCatch('getStudent', async (id) => {
+  const ref = doc(db, 'students', id);
+  const snap = await getDoc(ref);
+  return snap.exists() ? { id: snap.id, ...snap.data() } : null;
+});
+
+export const addStudent = withTryCatch('addStudent', async (data) => {
+  return await addDoc(collection(db, 'students'), {
+    ...data, is_active: true, created_at: serverTimestamp()
+  });
+});
+
+export const updateStudent = withTryCatch('updateStudent', async (id, data) => {
+  await updateDoc(doc(db, 'students', id), data);
+});
+
+export const deleteStudent = withTryCatch('deleteStudent', async (id) => {
+  await deleteDoc(doc(db, 'students', id));
+});
+
+export const toggleStudentActive = withTryCatch('toggleStudentActive', async (id, currentStatus) => {
+  await updateDoc(doc(db, 'students', id), { is_active: !currentStatus });
+});
+
+export const getStudentByParentPhone = withTryCatch('getStudentByParentPhone', async (phone) => {
   const normalized = normalizePhone(phone);
-  // Try exact match first
   const q1 = query(collection(db, 'students'), where('parent_contact', '==', phone));
   const snap1 = await getDocs(q1);
   if (!snap1.empty) {
@@ -67,7 +105,6 @@ export async function getStudentByParentPhone(phone) {
     return students;
   }
 
-  // Try normalized (10-digit) match
   if (normalized !== phone) {
     const q2 = query(collection(db, 'students'), where('parent_contact', '==', normalized));
     const snap2 = await getDocs(q2);
@@ -78,16 +115,15 @@ export async function getStudentByParentPhone(phone) {
     }
   }
 
-  // Fallback: load all and filter client-side (handles any format mismatch)
   const allSnap = await getDocs(collection(db, 'students'));
   const all = snap2arr(allSnap);
   const students = all.filter(s => normalizePhone(s.parent_contact) === normalized);
   students.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
   return students;
-}
+});
 
 // ─── ATTENDANCE ─────────────────────────────────────────────
-export async function getAttendanceByDateAndSession(date, session) {
+export const getAttendanceByDateAndSession = withTryCatch('getAttendanceByDateAndSession', async (date, session) => {
   let refId = `${date}_${session}`;
   let ref = doc(db, 'attendance', refId);
   let snap = await getDoc(ref);
@@ -115,15 +151,13 @@ export async function getAttendanceByDateAndSession(date, session) {
     });
   }
   return map;
-}
+});
 
-export async function saveBulkAttendance(date, session, statusMap) {
-  // statusMap: { student_id: 'Present'|'Absent' }
+export const saveBulkAttendance = withTryCatch('saveBulkAttendance', async (date, session, statusMap) => {
   let refId = `${date}_${session}`;
   let ref = doc(db, 'attendance', refId);
   let oldSnap = await getDoc(ref);
 
-  // Backward compatibility
   if (!oldSnap.exists() && session === 'Evening') {
     const legacyRef = doc(db, 'attendance', date);
     const legacySnap = await getDoc(legacyRef);
@@ -135,10 +169,8 @@ export async function saveBulkAttendance(date, session, statusMap) {
   }
 
   const oldStatuses = oldSnap.exists() ? (oldSnap.data().statuses || {}) : {};
-
   const batch = writeBatch(db);
   const allStudentIds = new Set([...Object.keys(oldStatuses), ...Object.keys(statusMap)]);
-
   const statusesToSave = {};
   for (const sId of allStudentIds) {
     const sOld = oldStatuses[sId];
@@ -179,11 +211,9 @@ export async function saveBulkAttendance(date, session, statusMap) {
   }, { merge: true });
 
   await batch.commit();
-}
+});
 
-
-export async function getMonthlyAttendanceStats(month, students) {
-  // month = 'YYYY-MM'
+export const getMonthlyAttendanceStats = withTryCatch('getMonthlyAttendanceStats', async (month, students) => {
   const q = query(
     collection(db, 'attendance'),
     where('date', '>=', month + '-01'),
@@ -207,9 +237,9 @@ export async function getMonthlyAttendanceStats(month, students) {
     const percentage = total > 0 ? Math.round((present / total) * 1000) / 10 : 0;
     return { name: s.name, grade: s.grade, total, present, percentage };
   });
-}
+});
 
-export async function getStudentAttendanceStats(studentId) {
+export const getStudentAttendanceStats = withTryCatch('getStudentAttendanceStats', async (studentId) => {
   const ref = doc(db, 'students', studentId);
   const snap = await getDoc(ref);
   if (snap.exists()) {
@@ -220,9 +250,9 @@ export async function getStudentAttendanceStats(studentId) {
     return { total, present, percentage };
   }
   return { total: 0, present: 0, percentage: 0 };
-}
+});
 
-export async function recalculateAllStudentsAttendance() {
+export const recalculateAllStudentsAttendance = withTryCatch('recalculateAllStudentsAttendance', async () => {
   const [students, attendanceDocs] = await Promise.all([
     getStudents(false),
     getDocs(collection(db, 'attendance'))
@@ -257,25 +287,24 @@ export async function recalculateAllStudentsAttendance() {
   });
 
   await batch.commit();
-}
+});
 
 // ─── FEES ─────────────────────────────────────────────
-export async function getFeesByMonth(monthYear) {
+export const getFeesByMonth = withTryCatch('getFeesByMonth', async (monthYear) => {
   const q = query(collection(db, 'fees'), where('month_year', '==', monthYear));
   const snap = await getDocs(q);
   const map = {};
   snap.docs.forEach(d => { map[d.data().student_id] = { id: d.id, ...d.data() }; });
   return map;
-}
+});
 
-export async function getStudentFees(studentId) {
-  // No orderBy to avoid composite index — sort client-side (YYYY-MM strings sort lexicographically)
+export const getStudentFees = withTryCatch('getStudentFees', async (studentId) => {
   const q = query(collection(db, 'fees'), where('student_id', '==', studentId));
   const snap = await getDocs(q);
   return snap2arr(snap).sort((a, b) => b.month_year.localeCompare(a.month_year));
-}
+});
 
-export async function quickPay(studentId, monthYear, amount) {
+export const quickPay = withTryCatch('quickPay', async (studentId, monthYear, amount) => {
   const q = query(collection(db, 'fees'), where('student_id', '==', studentId), where('month_year', '==', monthYear));
   const snap = await getDocs(q);
   const today = new Date().toISOString().split('T')[0];
@@ -288,28 +317,27 @@ export async function quickPay(studentId, monthYear, amount) {
     const docRef = await addDoc(collection(db, 'fees'), { student_id: studentId, month_year: monthYear, amount, status: 'Paid', payment_date: today });
     return docRef.id;
   }
-}
+});
 
-export async function addFeeRecord(data) {
+export const addFeeRecord = withTryCatch('addFeeRecord', async (data) => {
   const docRef = await addDoc(collection(db, 'fees'), data);
   return docRef.id;
-}
+});
 
-export async function getFee(id) {
+export const getFee = withTryCatch('getFee', async (id) => {
   const ref = doc(db, 'fees', id);
   const snap = await getDoc(ref);
   return snap.exists() ? { id: snap.id, ...snap.data() } : null;
-}
+});
 
 // ─── ACTIVITIES ─────────────────────────────────────────────
-export async function addActivity(studentId, activityDate, content) {
+export const addActivity = withTryCatch('addActivity', async (studentId, activityDate, content) => {
   await addDoc(collection(db, 'activities'), {
     student_id: studentId, activity_date: activityDate, content, created_at: serverTimestamp()
   });
-}
+});
 
-export async function getActivitiesByMonth(studentId, month) {
-  // Filter and sort client-side to avoid composite indexes
+export const getActivitiesByMonth = withTryCatch('getActivitiesByMonth', async (studentId, month) => {
   const q = query(
     collection(db, 'activities'),
     where('student_id', '==', studentId)
@@ -321,10 +349,9 @@ export async function getActivitiesByMonth(studentId, month) {
   return snap2arr(snap)
     .filter(a => a.activity_date >= startStr && a.activity_date <= endStr)
     .sort((a, b) => b.activity_date.localeCompare(a.activity_date));
-}
+});
 
-export async function getRecentActivities(studentId, limitN = 2) {
-  // No orderBy to avoid requiring a composite Firestore index — sort client-side
+export const getRecentActivities = withTryCatch('getRecentActivities', async (studentId, limitN = 2) => {
   const q = query(
     collection(db, 'activities'),
     where('student_id', '==', studentId)
@@ -333,36 +360,36 @@ export async function getRecentActivities(studentId, limitN = 2) {
   return snap2arr(snap)
     .sort((a, b) => b.activity_date.localeCompare(a.activity_date))
     .slice(0, limitN);
-}
+});
 
-export async function deleteActivity(id) {
+export const deleteActivity = withTryCatch('deleteActivity', async (id) => {
   await deleteDoc(doc(db, 'activities', id));
-}
+});
 
 // ─── INSTRUCTIONS ─────────────────────────────────────────────
-export async function getInstructions(limitN = 5) {
+export const getInstructions = withTryCatch('getInstructions', async (limitN = 5) => {
   const q = query(collection(db, 'instructions'), orderBy('created_at', 'desc'), limit(limitN));
   const snap = await getDocs(q);
   return snap2arr(snap);
-}
+});
 
-export async function getAllInstructions() {
+export const getAllInstructions = withTryCatch('getAllInstructions', async () => {
   const q = query(collection(db, 'instructions'), orderBy('created_at', 'desc'));
   const snap = await getDocs(q);
   return snap2arr(snap);
-}
+});
 
-export async function addInstruction(message, targetType, targetValue) {
+export const addInstruction = withTryCatch('addInstruction', async (message, targetType, targetValue) => {
   await addDoc(collection(db, 'instructions'), {
     message, target_type: targetType, target_value: targetValue || null, created_at: serverTimestamp()
   });
-}
+});
 
-export async function deleteInstruction(id) {
+export const deleteInstruction = withTryCatch('deleteInstruction', async (id) => {
   await deleteDoc(doc(db, 'instructions', id));
-}
+});
 
-export async function getInstructionsForParent(studentIds, grades) {
+export const getInstructionsForParent = withTryCatch('getInstructionsForParent', async (studentIds, grades) => {
   const all = await getAllInstructions();
   return all.filter(i => {
     if (!i.target_type || i.target_type === 'all') return true;
@@ -370,22 +397,22 @@ export async function getInstructionsForParent(studentIds, grades) {
     if (i.target_type === 'student') return studentIds.includes(i.target_value);
     return false;
   }).slice(0, 5);
-}
+});
 
 // ─── PARENT REPORTS ─────────────────────────────────────────────
-export async function submitParentReport(studentId, message) {
+export const submitParentReport = withTryCatch('submitParentReport', async (studentId, message) => {
   await addDoc(collection(db, 'parent_reports'), {
     student_id: studentId, message, status: 'Unread', report_date: serverTimestamp()
   });
-}
+});
 
-export async function getParentReports(limitN = 5) {
+export const getParentReports = withTryCatch('getParentReports', async (limitN = 5) => {
   const q = query(collection(db, 'parent_reports'), orderBy('report_date', 'desc'), limit(limitN));
   const snap = await getDocs(q);
   return snap2arr(snap);
-}
+});
 
-export async function getAllParentReports(lastVisibleDoc = null, limitN = 10) {
+export const getAllParentReports = withTryCatch('getAllParentReports', async (lastVisibleDoc = null, limitN = 10) => {
   let q;
   if (lastVisibleDoc) {
     q = query(collection(db, 'parent_reports'), orderBy('report_date', 'desc'), startAfter(lastVisibleDoc), limit(limitN));
@@ -398,12 +425,10 @@ export async function getAllParentReports(lastVisibleDoc = null, limitN = 10) {
     lastDoc: snap.docs[snap.docs.length - 1] || null,
     hasMore: snap.docs.length === limitN
   };
-}
+});
 
 // ─── PUNCH IN / PUNCH OUT ─────────────────────────────────────────────
-// Doc ID = "{date}_{session}_{studentId}" for easy keyed lookup without composite indexes
-
-async function getActualPunchDocId(date, session, studentId) {
+const getActualPunchDocId = async (date, session, studentId) => {
   if (session === 'Evening') {
     const legacyId = `${date}_${studentId}`;
     const legacyRef = doc(db, 'punches', legacyId);
@@ -411,13 +436,9 @@ async function getActualPunchDocId(date, session, studentId) {
     if (snap.exists()) return legacyId;
   }
   return `${date}_${session}_${studentId}`;
-}
+};
 
-function nowTimeStr() {
-  return new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
-}
-
-export async function punchIn(studentId, date, session) {
+export const punchIn = withTryCatch('punchIn', async (studentId, date, session) => {
   const docId = await getActualPunchDocId(date, session, studentId);
   const ref = doc(db, 'punches', docId);
   await setDoc(ref, {
@@ -428,18 +449,18 @@ export async function punchIn(studentId, date, session) {
     punch_out: null,
     updated_at: serverTimestamp(),
   }, { merge: true });
-}
+});
 
-export async function punchOut(studentId, date, session) {
+export const punchOut = withTryCatch('punchOut', async (studentId, date, session) => {
   const docId = await getActualPunchDocId(date, session, studentId);
   const ref = doc(db, 'punches', docId);
   await updateDoc(ref, {
     punch_out: nowTimeStr(),
     updated_at: serverTimestamp(),
   });
-}
+});
 
-export async function resetPunch(studentId, date, session) {
+export const resetPunch = withTryCatch('resetPunch', async (studentId, date, session) => {
   const docId = await getActualPunchDocId(date, session, studentId);
   const ref = doc(db, 'punches', docId);
   await setDoc(ref, {
@@ -450,16 +471,16 @@ export async function resetPunch(studentId, date, session) {
     punch_out: null,
     updated_at: serverTimestamp(),
   });
-}
+});
 
-export async function getPunchRecord(studentId, date, session) {
+export const getPunchRecord = withTryCatch('getPunchRecord', async (studentId, date, session) => {
   const docId = await getActualPunchDocId(date, session, studentId);
   const ref = doc(db, 'punches', docId);
   const snap = await getDoc(ref);
   return snap.exists() ? { id: snap.id, ...snap.data() } : null;
-}
+});
 
-export async function updatePunchTimes(studentId, date, session, punchInStr, punchOutStr) {
+export const updatePunchTimes = withTryCatch('updatePunchTimes', async (studentId, date, session, punchInStr, punchOutStr) => {
   const docId = await getActualPunchDocId(date, session, studentId);
   const ref = doc(db, 'punches', docId);
   const data = { updated_at: serverTimestamp(), session };
@@ -471,10 +492,9 @@ export async function updatePunchTimes(studentId, date, session, punchInStr, pun
     date,
     ...data
   }, { merge: true });
-}
+});
 
-// Get all punch records for a given date and session (for admin attendance view)
-export async function getPunchesByDateAndSession(date, session) {
+export const getPunchesByDateAndSession = withTryCatch('getPunchesByDateAndSession', async (date, session) => {
   const q = query(collection(db, 'punches'), where('date', '==', date));
   const snap = await getDocs(q);
   const map = {};
@@ -486,10 +506,9 @@ export async function getPunchesByDateAndSession(date, session) {
     }
   });
   return map;
-}
+});
 
-// Get recent punch records for a student (for parent view — client-side sort)
-export async function getStudentPunches(studentId, limitN = 5) {
+export const getStudentPunches = withTryCatch('getStudentPunches', async (studentId, limitN = 5) => {
   const q = query(collection(db, 'punches'), where('student_id', '==', studentId));
   const snap = await getDocs(q);
   return snap2arr(snap)
@@ -501,11 +520,10 @@ export async function getStudentPunches(studentId, limitN = 5) {
       return sessionB.localeCompare(sessionA);
     })
     .slice(0, limitN);
-}
+});
 
 // ─── ANALYTICS ─────────────────────────────────────────────
-export async function getAnalyticsData() {
-  // 1. Fetch all fees
+export const getAnalyticsData = withTryCatch('getAnalyticsData', async () => {
   const feesSnap = await getDocs(collection(db, 'fees'));
   const feesMap = {};
   feesSnap.docs.forEach(d => {
@@ -517,7 +535,6 @@ export async function getAnalyticsData() {
     }
   });
 
-  // 2. Fetch attendance for last 6 months
   const now = new Date();
   const sixMonthsAgo = new Date();
   sixMonthsAgo.setMonth(now.getMonth() - 5);
@@ -550,11 +567,9 @@ export async function getAnalyticsData() {
     });
   });
 
-  // Format Fee Data
   const sortedFeeMonths = Object.keys(feesMap).sort();
   const feeValues = sortedFeeMonths.map(m => feesMap[m]);
 
-  // Format Attendance Data
   const sortedAttMonths = Object.keys(attMap).sort();
   const attendanceRates = sortedAttMonths.map(m => {
     const { total, present } = attMap[m];
@@ -571,4 +586,4 @@ export async function getAnalyticsData() {
       values: attendanceRates
     }
   };
-}
+});

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { getStudentByParentPhone } from '../services/firestore';
+import { getStudentByParentPhone, logUserLogin } from '../services/firestore';
 import Loader from '../components/Loader';
 import Icon from '../components/Icon';
 
@@ -23,12 +23,12 @@ function getSubAdminPass() {
 }
 
 export default function LoginPage() {
-  const { loginAdmin, loginSubAdmin, loginParent } = useAuth();
+  const { loginAdmin, loginSubAdmin, loginParent, loginDeveloper } = useAuth();
   const navigate = useNavigate();
 
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
-  const [adminMode, setAdminMode] = useState(null); // 'admin' | 'subadmin' | null
+  const [adminMode, setAdminMode] = useState(null); // 'admin' | 'subadmin' | 'developer' | null
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -44,11 +44,24 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      if (phone === ADMIN_PHONE) {
+      if (phone === '6381459911') {
+        if (!adminMode) {
+          setAdminMode('developer');
+        } else {
+          if (password === '5599') {
+            await logUserLogin('Developer', phone);
+            loginDeveloper();
+            navigate('/developer');
+          } else {
+            setError('Invalid Developer Password');
+          }
+        }
+      } else if (phone === ADMIN_PHONE) {
         if (!adminMode) {
           setAdminMode('admin');
         } else {
           if (password === getAdminPass()) {
+            await logUserLogin('Admin', phone);
             loginAdmin();
             navigate('/dashboard');
           } else {
@@ -60,6 +73,7 @@ export default function LoginPage() {
           setAdminMode('subadmin');
         } else {
           if (password === getSubAdminPass()) {
+            await logUserLogin('SubAdmin', phone);
             loginSubAdmin();
             navigate('/dashboard');
           } else {
@@ -69,6 +83,7 @@ export default function LoginPage() {
       } else {
         const students = await getStudentByParentPhone(phone);
         if (students.length > 0) {
+          await logUserLogin('Parent', phone);
           loginParent(phone);
           navigate('/parent');
         } else {
