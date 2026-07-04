@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import {
-  getStudents, getAttendanceByDate, saveBulkAttendance,
+  getStudents, getAttendanceByDateAndSession, saveBulkAttendance,
   getMonthlyAttendanceStats, getPunchesByDate, punchIn, punchOut, resetPunch, updatePunchTimes
 } from '../services/firestore';
 import Loader from '../components/Loader';
@@ -39,6 +39,7 @@ export default function AttendancePage() {
 
   const [students, setStudents] = useState([]);
   const [selectedDate, setSelectedDate] = useState(today);
+  const [selectedSession, setSelectedSession] = useState('Morning');
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
   const [attendance, setAttendance] = useState({});
   const [punches, setPunches] = useState({});   // { studentId: { punch_in, punch_out } }
@@ -53,7 +54,7 @@ export default function AttendancePage() {
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => { loadStudents(); }, []);
-  useEffect(() => { if (students.length > 0) { loadAttendance(); loadPunches(); } }, [selectedDate, students]);
+  useEffect(() => { if (students.length > 0) { loadAttendance(); loadPunches(); } }, [selectedDate, selectedSession, students]);
   useEffect(() => { if (students.length > 0) loadMonthlyStats(); }, [selectedMonth, students]);
 
   async function loadStudents() {
@@ -63,7 +64,7 @@ export default function AttendancePage() {
   }
 
   async function loadAttendance() {
-    const map = await getAttendanceByDate(selectedDate);
+    const map = await getAttendanceByDateAndSession(selectedDate, selectedSession);
     const simplified = {};
     Object.entries(map).forEach(([sid, rec]) => { simplified[sid] = rec.status; });
     setAttendance(simplified);
@@ -93,7 +94,7 @@ export default function AttendancePage() {
   async function handleSave() {
     setSaving(true);
     try {
-      await saveBulkAttendance(selectedDate, attendance);
+      await saveBulkAttendance(selectedDate, selectedSession, attendance);
       showToast('Attendance saved!', 'success');
       loadAttendance();
     } catch {
@@ -112,7 +113,7 @@ export default function AttendancePage() {
       nextAttendance[studentId] = 'Present';
 
       setAttendance(nextAttendance);
-      await saveBulkAttendance(selectedDate, nextAttendance);
+      await saveBulkAttendance(selectedDate, selectedSession, nextAttendance);
       await loadPunches();
     } catch {
       showToast('Failed to punch in', 'danger');
@@ -248,6 +249,13 @@ export default function AttendancePage() {
             <div className="form-group" style={{ flex: '1', minWidth: '150px', maxWidth: '200px' }}>
               <label className="form-label">Select Date</label>
               <input type="date" className="form-control" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} />
+            </div>
+            <div className="form-group" style={{ flex: '1', minWidth: '150px', maxWidth: '200px' }}>
+              <label className="form-label">Select Session</label>
+              <select className="form-select form-control" value={selectedSession} onChange={e => setSelectedSession(e.target.value)}>
+                <option value="Morning">Morning</option>
+                <option value="Evening">Evening</option>
+              </select>
             </div>
             <div className="form-group" style={{ flex: '1', minWidth: '200px', maxWidth: '300px' }}>
               <label className="form-label">Search Student</label>

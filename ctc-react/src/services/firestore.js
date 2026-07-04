@@ -87,9 +87,19 @@ export async function getStudentByParentPhone(phone) {
 }
 
 // ─── ATTENDANCE ─────────────────────────────────────────────
-export async function getAttendanceByDate(date) {
-  const ref = doc(db, 'attendance', date);
-  const snap = await getDoc(ref);
+export async function getAttendanceByDateAndSession(date, session) {
+  let refId = `${date}_${session}`;
+  let ref = doc(db, 'attendance', refId);
+  let snap = await getDoc(ref);
+
+  if (!snap.exists() && session === 'Morning') {
+    const legacyRef = doc(db, 'attendance', date);
+    const legacySnap = await getDoc(legacyRef);
+    if (legacySnap.exists()) {
+      snap = legacySnap;
+    }
+  }
+
   const map = {};
   if (snap.exists()) {
     const data = snap.data();
@@ -98,7 +108,8 @@ export async function getAttendanceByDate(date) {
       map[studentId] = {
         id: snap.id,
         student_id: studentId,
-        date: snap.id,
+        date: data.date || date,
+        session: data.session || session,
         status: status
       };
     });
@@ -106,10 +117,23 @@ export async function getAttendanceByDate(date) {
   return map;
 }
 
-export async function saveBulkAttendance(date, statusMap) {
+export async function saveBulkAttendance(date, session, statusMap) {
   // statusMap: { student_id: 'Present'|'Absent' }
-  const ref = doc(db, 'attendance', date);
-  const oldSnap = await getDoc(ref);
+  let refId = `${date}_${session}`;
+  let ref = doc(db, 'attendance', refId);
+  let oldSnap = await getDoc(ref);
+
+  // Backward compatibility
+  if (!oldSnap.exists() && session === 'Morning') {
+    const legacyRef = doc(db, 'attendance', date);
+    const legacySnap = await getDoc(legacyRef);
+    if (legacySnap.exists()) {
+      refId = date;
+      ref = legacyRef;
+      oldSnap = legacySnap;
+    }
+  }
+
   const oldStatuses = oldSnap.exists() ? (oldSnap.data().statuses || {}) : {};
 
   const batch = writeBatch(db);
@@ -150,6 +174,7 @@ export async function saveBulkAttendance(date, statusMap) {
 
   batch.set(ref, {
     date: date,
+    session: session,
     statuses: statusesToSave
   }, { merge: true });
 
