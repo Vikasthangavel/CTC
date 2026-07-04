@@ -21,6 +21,20 @@ export async function logUserLogin(userType, identifier) {
   }
 }
 
+export async function clearLoginLogs() {
+  const snap = await getDocs(collection(db, 'login_logs'));
+  const batch = writeBatch(db);
+  snap.docs.forEach(d => batch.delete(d.ref));
+  await batch.commit();
+}
+
+export async function clearDeveloperErrors() {
+  const snap = await getDocs(collection(db, 'developer_errors'));
+  const batch = writeBatch(db);
+  snap.docs.forEach(d => batch.delete(d.ref));
+  await batch.commit();
+}
+
 function withTryCatch(fnName, fn) {
   return async (...args) => {
     try {
