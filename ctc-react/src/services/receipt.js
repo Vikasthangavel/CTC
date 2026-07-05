@@ -251,7 +251,7 @@ export function printReceipt({ student, month, amount, paymentDate, receiptId })
         </div>
 
         <div class="footer">
-          Powered by <a href="https://www.vikast.me" target="_blank">time2innovate</a> | Engineered by Vikas
+          Powered by <a href="https://time2innovate.pages.dev" target="_blank">time2innovate</a> 
         </div>
       </div>
 
