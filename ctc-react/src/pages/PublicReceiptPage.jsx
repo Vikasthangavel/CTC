@@ -163,7 +163,7 @@ export default function PublicReceiptPage() {
 
         {/* Footer */}
         <div style={{ textAlign: 'center', fontSize: '0.75rem', color: 'var(--text-muted)', borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
-          Powered by <a href="https://www.time2orders.com" target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', fontWeight: 600, textDecoration: 'none' }}>time2innovate</a> | Engineered by Vikas
+          Powered by <a href="https://time2innovate.pages.dev" target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', fontWeight: 600, textDecoration: 'none' }}>time2innovate</a> 
         </div>
 
       </div>
