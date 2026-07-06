@@ -52,6 +52,7 @@ export default function AttendancePage() {
   const [editPunchIn, setEditPunchIn] = useState('');
   const [editPunchOut, setEditPunchOut] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All'); // All | Present | Absent | Not Marked | Need Punch Out
 
   useEffect(() => { loadStudents(); }, []);
   useEffect(() => { if (students.length > 0) { loadAttendance(); loadPunches(); } }, [selectedDate, selectedSession, students]);
@@ -174,10 +175,27 @@ export default function AttendancePage() {
   };
 
   const studentsWithSno = students.map((s, i) => ({ ...s, sno: i + 1 }));
-  const filteredStudents = studentsWithSno.filter(s =>
-    s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    String(s.sno) === searchQuery
-  );
+  const filteredStudents = studentsWithSno.filter(s => {
+    // Text search
+    const matchesSearch =
+      s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      String(s.sno) === searchQuery;
+
+    // Status filter
+    let matchesStatus = true;
+    if (statusFilter === 'Present') {
+      matchesStatus = attendance[s.id] === 'Present';
+    } else if (statusFilter === 'Absent') {
+      matchesStatus = attendance[s.id] === 'Absent';
+    } else if (statusFilter === 'Not Marked') {
+      matchesStatus = !attendance[s.id];
+    } else if (statusFilter === 'Need Punch Out') {
+      const punch = punches[s.id] || {};
+      matchesStatus = !!punch.punch_in && !punch.punch_out;
+    }
+
+    return matchesSearch && matchesStatus;
+  });
 
   const monthlyStatsWithSno = monthlyStats.map((stat, i) => ({ ...stat, sno: i + 1 }));
   const filteredMonthlyStats = monthlyStatsWithSno.filter(stat =>
@@ -245,7 +263,7 @@ export default function AttendancePage() {
       {/* ── Mark Attendance + Punch ── */}
       {view === 'mark' && (
         <>
-          <div style={{ display: 'flex', gap: '16px', marginBottom: '20px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '16px', marginBottom: '16px', flexWrap: 'wrap' }}>
             <div className="form-group" style={{ flex: '1', minWidth: '150px', maxWidth: '200px' }}>
               <label className="form-label">Select Date</label>
               <input type="date" className="form-control" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} />
@@ -263,7 +281,7 @@ export default function AttendancePage() {
             </div>
           </div>
 
-          {/* Daily Stats */}
+          {/* Daily Stats — click to filter */}
           <div className="row mb-4" style={{ gap: '10px' }}>
             {[
               { label: 'Present', value: dailyStats.present, color: 'var(--success)' },
@@ -271,7 +289,19 @@ export default function AttendancePage() {
               { label: 'Not Marked', value: dailyStats.notMarked, color: 'var(--text-muted)' },
               { label: 'Need Punch Out', value: dailyStats.needPunchOut, color: 'var(--warning)' },
             ].map(({ label, value, color }) => (
-              <div key={label} className="col stat-card" style={{ flex: '1' }}>
+              <div
+                key={label}
+                className="col stat-card"
+                style={{
+                  flex: '1',
+                  cursor: 'pointer',
+                  outline: statusFilter === label ? `2px solid ${color}` : 'none',
+                  outlineOffset: '2px',
+                  transition: 'outline 0.15s',
+                }}
+                onClick={() => setStatusFilter(prev => prev === label ? 'All' : label)}
+                title={`Filter by ${label}`}
+              >
                 <div className="stat-card__number" style={{ color }}>{value}</div>
                 <div className="stat-card__label">{label}</div>
               </div>
@@ -424,7 +454,9 @@ export default function AttendancePage() {
 
           {filteredStudents.length === 0 && (
             <div className="card" style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted)' }}>
-              No active students found.
+              {statusFilter !== 'All'
+                ? `No students match the "${statusFilter}" filter.`
+                : 'No active students found.'}
             </div>
           )}
         </>
