@@ -81,15 +81,23 @@ export default function AttendancePage() {
     setMonthlyStats(stats);
   }
 
-  function setStatus(studentId, status) {
-    setAttendance(prev => {
-      if (prev[studentId] === status) {
-        const next = { ...prev };
-        delete next[studentId];
-        return next;
-      }
-      return { ...prev, [studentId]: status };
-    });
+  async function setStatus(studentId, status) {
+    // Compute new attendance map immediately (don't rely on stale state)
+    let nextAttendance;
+    if (attendance[studentId] === status) {
+      // Toggle off — remove the mark
+      nextAttendance = { ...attendance };
+      delete nextAttendance[studentId];
+    } else {
+      nextAttendance = { ...attendance, [studentId]: status };
+    }
+    setAttendance(nextAttendance);
+    // Auto-save so refresh always reflects the correct status
+    try {
+      await saveBulkAttendance(selectedDate, selectedSession, nextAttendance);
+    } catch {
+      showToast('Failed to save attendance', 'danger');
+    }
   }
 
   async function handleSave() {
