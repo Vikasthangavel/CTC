@@ -1,9 +1,10 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash
-from datetime import datetime
+from datetime import datetime, timedelta
 from db import init_db, get_db_connection
 
 app = Flask(__name__)
 app.secret_key = 'poiuytrdfghjnbvcde'  # Change this to a random secret key
+app.permanent_session_lifetime = timedelta(hours=12)
 
 @app.template_filter('format_datetime')
 def format_datetime(value, fmt='%Y-%m-%d %H:%M'):
@@ -54,6 +55,7 @@ def login():
                 # Password matches current day and month (DDMM)
                 current_pass = datetime.now().strftime('%d%m')
                 if password == current_pass:
+                    session.permanent = True
                     session['admin_id'] = 1 # Hardcoded ID for this special admin
                     session['username'] = 'admin'
                     return redirect(url_for('dashboard'))
@@ -72,6 +74,7 @@ def login():
             conn.close()
 
             if student:
+                session.permanent = True
                 session['parent_phone'] = phone
                 return redirect(url_for('parent_dashboard'))
             else:
