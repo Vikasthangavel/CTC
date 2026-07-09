@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider } from './components/Toast';
 import Layout from './components/Layout';
+import UpdatePrompt from './components/UpdatePrompt';
 
 import LoginPage from './pages/LoginPage';
 import PublicReceiptPage from './pages/PublicReceiptPage';
@@ -98,6 +99,7 @@ export default function App() {
       <AuthProvider>
         <ToastProvider>
           <AppRoutes />
+          <UpdatePrompt />
         </ToastProvider>
       </AuthProvider>
     </BrowserRouter>
