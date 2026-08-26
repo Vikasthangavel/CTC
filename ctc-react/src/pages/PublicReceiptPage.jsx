@@ -157,8 +157,38 @@ export default function PublicReceiptPage() {
         </div>
 
         {/* Notice Info Box */}
-        <div style={{ border: '1px dashed var(--primary-border)', backgroundColor: 'var(--primary-bg)', padding: '12px 16px', borderRadius: '8px', fontSize: '0.82rem', color: 'var(--primary)', textAlign: 'center', fontWeight: 500, marginBottom: '24px' }}>
+        <div style={{ border: '1px dashed var(--primary-border)', backgroundColor: 'var(--primary-bg)', padding: '12px 16px', borderRadius: '8px', fontSize: '0.82rem', color: 'var(--primary)', textAlign: 'center', fontWeight: 500, marginBottom: '20px' }}>
           Thank you for the payment! This is an electronically generated receipt. No signature required.
+        </div>
+
+        {/* Time2Order App Download Box */}
+        <div style={{ border: '1px solid var(--border)', backgroundColor: 'var(--surface-2)', padding: '16px', borderRadius: '12px', textAlign: 'center', marginBottom: '24px' }}>
+          <p style={{ margin: '0 0 10px 0', fontSize: '0.85rem', color: 'var(--text)', fontWeight: 600 }}>
+            Download this app to order on Challengers Stationery
+          </p>
+          <a
+            href="https://play.google.com/store/apps/details?id=com.time2order.app"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              width: '100%',
+              backgroundColor: '#01875f',
+              color: '#ffffff',
+              fontWeight: '600',
+              padding: '10px 16px',
+              borderRadius: '8px',
+              textDecoration: 'none',
+              fontSize: '0.875rem'
+            }}
+          >
+            <Icon name="playstore" size={20} />
+            Get it on Google Play
+          </a>
         </div>
 
         {/* Footer */}

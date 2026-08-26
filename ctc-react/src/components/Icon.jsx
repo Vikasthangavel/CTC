@@ -86,13 +86,29 @@ const icons = {
   share: (
     <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 10.742l4.632-2.316m0 7.148l-4.632-2.316M21 12a3 3 0 11-6 0 3 3 0 016 0zm-12-6a3 3 0 11-6 0 3 3 0 016 0zm0 12a3 3 0 11-6 0 3 3 0 016 0z" />
   ),
-  playstore: (
-    <path fill="currentColor" d="M3.609 1.814L13.792 12 3.61 22.186a2.37 2.37 0 0 1-.61-1.586V3.4c0-.608.225-1.164.609-1.586zm11.6 11.6l2.964-2.964-11.458-6.615 8.494 9.579zm0 1.172l-8.494 9.579 11.458-6.615-2.964-2.964zm1.586-.793l3.52-2.033a1.5 1.5 0 0 0 0-2.584l-3.52-2.033-1.414 1.414 1.414 1.414 1.414 1.414-1.414 1.414z" />
-  ),
   spinner: null,
 };
 
 export default function Icon({ name, size = 18, className = '', style = {} }) {
+  if (name === 'playstore') {
+    return (
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        className={className}
+        style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0, ...style }}
+        aria-hidden="true"
+      >
+        <path d="M4.08 2.27C3.72 2.63 3.5 3.19 3.5 3.91V20.09C3.5 20.81 3.72 21.37 4.08 21.73L4.19 21.84L13.27 12.76V11.24L4.19 2.16L4.08 2.27Z" fill="#00D2FF"/>
+        <path d="M16.29 15.78L13.27 12.76V11.24L16.29 8.22L16.41 8.29L20.01 10.33C21.03 10.91 21.03 11.87 20.01 12.46L16.41 14.49L16.29 15.78Z" fill="#FFC700"/>
+        <path d="M16.41 15.71L13.27 12.57L4.08 21.73C4.42 22.09 4.97 22.14 5.6 21.78L16.41 15.71Z" fill="#FF3A44"/>
+        <path d="M16.41 8.29L5.6 2.22C4.97 1.86 4.42 1.91 4.08 2.27L13.27 11.43L16.41 8.29Z" fill="#00E676"/>
+      </svg>
+    );
+  }
+
   const paths = icons[name];
   if (!paths) return null;
   return (

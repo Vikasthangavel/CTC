@@ -250,6 +250,11 @@ export function printReceipt({ student, month, amount, paymentDate, receiptId })
           Thank you for the payment! This is an electronically generated receipt. No signature required.
         </div>
 
+        <div style="margin-top: 16px; border: 1px solid #e2e8f0; background-color: #f8fafc; padding: 12px; border-radius: 8px; font-size: 0.82rem; color: #334155; text-align: center;">
+          Download <strong>Time2Order</strong> app to order on Challengers Stationery:<br/>
+          <a href="https://play.google.com/store/apps/details?id=com.time2order.app" target="_blank" style="color: #01875f; font-weight: 600;">https://play.google.com/store/apps/details?id=com.time2order.app</a>
+        </div>
+
         <div class="footer">
           Powered by <a href="https://time2innovate.pages.dev" target="_blank">time2innovate</a> 
         </div>
@@ -286,8 +291,9 @@ export function shareReceiptOnWhatsApp({ student, month, amount, paymentDate, fe
 
   const formattedDate = paymentDate || new Date().toISOString().split('T')[0];
   const receiptUrl = feeId ? `${window.location.origin}/receipt/${feeId}` : '';
+  const playStoreUrl = 'https://play.google.com/store/apps/details?id=com.time2order.app';
 
-  const msg = `Hello *${student.parent_name}*,\n\nWe have successfully received the tuition fee payment of *₹${amount}* for *${student.name}* (Grade ${student.grade}) for the month of *${month}* on *${formattedDate}*.\n\n${receiptUrl ? `You can view and download your receipt here:\n${receiptUrl}\n\n` : ''}Thank you!\n*Challengers Tuition Center*`;
+  const msg = `Hello *${student.parent_name}*,\n\nWe have successfully received the tuition fee payment of *₹${amount}* for *${student.name}* (Grade ${student.grade}) for the month of *${month}* on *${formattedDate}*.\n\n${receiptUrl ? `You can view and download your receipt here:\n${receiptUrl}\n\n` : ''}🛒 *Order on Challengers Stationery:* Download the Time2Order app here:\n${playStoreUrl}\n\nThank you!\n*Challengers Tuition Center*`;
 
   const url = `https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodeURIComponent(msg)}`;
   window.open(url, '_blank');
