@@ -157,6 +157,37 @@ export default function LoginPage() {
                   </div>
                 )}
               </form>
+
+              <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid var(--border-color, #e5e7eb)', textAlign: 'center' }}>
+                <p style={{ margin: '0 0 10px 0', fontSize: '0.85rem', color: 'var(--text-muted, #64748b)', fontWeight: '500' }}>
+                  Download this app to order on Challengers Stationery
+                </p>
+                <a
+                  href="https://play.google.com/store/apps/details?id=com.time2order.app"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    width: '100%',
+                    backgroundColor: '#01875f',
+                    color: '#ffffff',
+                    fontWeight: '600',
+                    padding: '10px 16px',
+                    borderRadius: '8px',
+                    textDecoration: 'none',
+                    fontSize: '0.875rem',
+                    boxShadow: '0 2px 6px rgba(1, 135, 95, 0.25)',
+                    transition: 'opacity 0.2s'
+                  }}
+                >
+                  <Icon name="playstore" size={20} />
+                  Get it on Google Play
+                </a>
+              </div>
             </div>
           </div>
         </div>
