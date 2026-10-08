@@ -1,0 +1,33 @@
+{
+  "expo": {
+    "name": "ClassPulse",
+    "slug": "classpulse",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0F0E17",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.classpulse.app"
+    },
+    "android": {
+      "package": "com.classpulse.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#0F0E17",
+        "foregroundImage": "./assets/adaptive-icon.png"
+      }
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/favicon.png",
+      "backgroundColor": "#0F0E17",
+      "themeColor": "#6C5CE7",
+      "name": "ClassPulse",
+      "shortName": "ClassPulse",
+      "description": "Smart Multi-Tuition Management Platform"
+    },
+    "platforms": ["ios", "android", "web"]
+  }
+}

@@ -1,749 +1,1031 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+from flask_jwt_extended import (
+    JWTManager, create_access_token,
+    jwt_required, get_jwt_identity
+)
 from datetime import datetime, timedelta
+import json
 from db import init_db, get_db_connection
 
+# ──────────────────────────────────────────
+#  App Setup
+# ──────────────────────────────────────────
 app = Flask(__name__)
-app.secret_key = 'poiuytrdfghjnbvcde'  # Change this to a random secret key
-app.permanent_session_lifetime = timedelta(hours=12)
+app.config['JWT_SECRET_KEY'] = 'classpulse-secret-key-change-in-production'
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=12)
 
-@app.template_filter('format_datetime')
-def format_datetime(value, fmt='%Y-%m-%d %H:%M'):
-    if value is None: return ""
-    if isinstance(value, str): return value[:16]
-    return value.strftime(fmt)
+CORS(app)
+jwt = JWTManager(app)
 
-# Initialize DB if not exists
+# Initialize database on startup
 init_db()
 
-@app.errorhandler(404)
-def page_not_found(e):
-    return render_template('error.html', error_message="Page not found (404)"), 404
 
-@app.errorhandler(500)
-def internal_server_error(e):
-    return render_template('error.html', error_message="Internal Server Error (500)"), 500
+# ──────────────────────────────────────────
+#  Helper Functions
+# ──────────────────────────────────────────
+def success(data=None, message='Success', status=200):
+    """Standard success response."""
+    return jsonify({'success': True, 'message': message, 'data': data}), status
 
-@app.errorhandler(Exception)
-def handle_exception(e):
-    # Pass the actual error message
-    return render_template('error.html', error_message=str(e)), 500
+def error(message='Error', status=400):
+    """Standard error response."""
+    return jsonify({'success': False, 'message': message}), status
 
-def is_logged_in():
-    return 'admin_id' in session
+def get_tuition_id():
+    """Get the tuition_id from the JWT identity."""
+    identity = get_jwt_identity()
+    return identity.get('tuition_id')
 
-@app.route('/')
-def index():
-    if is_logged_in():
-        return redirect(url_for('dashboard'))
-    if 'parent_phone' in session:
-        return redirect(url_for('parent_dashboard'))
-    return redirect(url_for('login'))
+def get_identity_type():
+    """Get the user type from JWT (tuition_admin or parent)."""
+    identity = get_jwt_identity()
+    return identity.get('type')
 
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    error = None
-    phone = None
-    admin_mode = False
 
-    if request.method == 'POST':
-        phone = request.form.get('phone')
-        password = request.form.get('password')
-        
-        # Admin Login Logic
-        if phone == '9524439288':
-            if password:
-                # Password matches current day and month (DDMM)
-                current_pass = datetime.now().strftime('%d%m')
-                if password == current_pass:
-                    session.permanent = True
-                    session['admin_id'] = 1 # Hardcoded ID for this special admin
-                    session['username'] = 'admin'
-                    return redirect(url_for('dashboard'))
-                else:
-                    error = 'Invalid Admin Password'
-                    admin_mode = True
-            else:
-                # First step passed, show password field
-                admin_mode = True
-        
-        # Parent Login Logic
-        else:
-            conn = get_db_connection()
-            # Check if phone exists in students table
-            student = conn.execute('SELECT * FROM students WHERE parent_contact = ?', (phone,)).fetchone()
-            conn.close()
+# ══════════════════════════════════════════
+#  AUTH ROUTES
+# ══════════════════════════════════════════
 
-            if student:
-                session.permanent = True
-                session['parent_phone'] = phone
-                return redirect(url_for('parent_dashboard'))
-            else:
-                error = 'Phone number not registered with any student.'
+@app.route('/api/auth/signup', methods=['POST'])
+def signup():
+    """Register a new tuition center on ClassPulse."""
+    data = request.get_json(silent=True, force=True) or {}
+    print("INCOMING SIGNUP DATA:", data)
+    print("RAW REQUEST DATA:", request.data)
 
-    return render_template('login.html', error=error, phone=phone, admin_mode=admin_mode)
+    name    = data.get('name', '').strip()
+    phone   = data.get('phone', '').strip()
+    email   = data.get('email', '').strip()
+    password = data.get('password', '').strip()
+    address = data.get('address', '').strip()
 
-@app.route('/logout')
-def logout():
-    session.clear()
-    return redirect(url_for('login'))
+    if not name or not phone or not password:
+        print(f"Validation failed. name='{name}', phone='{phone}', password='{password}'")
+        return error('Name, phone, and password are required.')
 
-@app.route('/parent-dashboard')
-def parent_dashboard():
-    if 'parent_phone' not in session: return redirect(url_for('login'))
-    
-    phone = session['parent_phone']
-    
     conn = get_db_connection()
-    students = conn.execute('SELECT * FROM students WHERE parent_contact = ?', (phone,)).fetchall()
-    
-    children_data = []
-    
-    for s in students:
-        # Attendance Stats (All time or Current Month?) -> Let's do All Time for simplicity or last 30 days
-        # Based on previous implementation logic:
-        stats_query = '''
-            SELECT 
-                COUNT(id) as total_marked,
-                SUM(CASE WHEN status = 'Present' THEN 1 ELSE 0 END) as present_count
-            FROM attendance
-            WHERE student_id = ?
-        '''
-        stats_row = conn.execute(stats_query, (s['id'],)).fetchone()
-        
-        total = stats_row['total_marked']
-        present = stats_row['present_count'] if stats_row['present_count'] else 0
-        percentage = round((present / total * 100), 1) if total > 0 else 0
-        
-        # Recent Fees
-        fees = conn.execute('SELECT * FROM fees WHERE student_id = ? ORDER BY id DESC LIMIT 5', (s['id'],)).fetchall()
-        
-        # Recent Activities (Limit to 2 for dashboard)
-        activities = conn.execute('SELECT * FROM daily_activities WHERE student_id = ? ORDER BY activity_date DESC, created_at DESC LIMIT 2', (s['id'],)).fetchall()
-        
-        children_data.append({
-            'student': s,
-            'attendance_stats': {'total': total, 'present': present, 'percentage': percentage},
-            'fees': fees,
-            'activities': activities
-        })
 
-    # Fetch recent relevant instructions
-    # Collect IDs and Grades for this parent's students
-    student_ids = [s['id'] for s in students]
-    student_grades = [s['grade'] for s in students]
-    
-    # We need to construct a robust query or filter below. 
-    # Since sqlite/mysql translation layer is custom, let's keep query simple and filter in python if list is small, or use complex ORs.
-    # Given typical volume, fetching recent 20 instructions and filtering in python is safe and easiest to maintain.
-    
-    all_recent_instructions = conn.execute('SELECT * FROM instructions ORDER BY created_at DESC LIMIT 20').fetchall()
-    
-    instructions = []
-    for instr in all_recent_instructions:
-        if instr['target_type'] == 'all' or instr['target_type'] is None:
-            instructions.append(instr)
-        elif instr['target_type'] == 'grade':
-            # target_value is string because DB stores VARCHAR. Ensure loose comparison.
-            if int(instr['target_value']) in student_grades:
-                instructions.append(instr)
-        elif instr['target_type'] == 'student':
-            if int(instr['target_value']) in student_ids:
-                instructions.append(instr)
-                
-    # Limit to top 5 after filtering
-    instructions = instructions[:5]
-        
-    conn.close()
-    return render_template('parent_dashboard.html', children_data=children_data, instructions=instructions)
-
-@app.route('/parent/report', methods=['POST'])
-def submit_parent_report():
-    if 'parent_phone' not in session: return redirect(url_for('login'))
-    
-    student_id = request.form.get('student_id')
-    message = request.form.get('message')
-    
-    if student_id and message:
-        conn = get_db_connection()
-        conn.execute('INSERT INTO parent_reports (student_id, message) VALUES (?, ?)',
-                     (student_id, message))
-        conn.commit()
+    # Check if phone is already registered
+    existing = conn.execute('SELECT id FROM tuitions WHERE phone = ?', (phone,)).fetchone()
+    if existing:
         conn.close()
-        flash('Report submitted successfully!', 'success')
-    else:
-        flash('Please fill in all fields.', 'danger')
-        
-    return redirect(url_for('parent_dashboard'))
+        return error('This phone number is already registered.')
 
-@app.route('/parent/activity_report/<int:student_id>')
-def parent_activity_report(student_id):
-    if 'parent_phone' not in session: return redirect(url_for('login'))
-    
-    conn = get_db_connection()
-    # Verify student belongs to parent
-    student = conn.execute('SELECT * FROM students WHERE id = ? AND parent_contact = ?', 
-                          (student_id, session['parent_phone'])).fetchone()
-    
-    if not student:
-        conn.close()
-        flash('Access Denied.')
-        return redirect(url_for('parent_dashboard'))
-    
-    # Get month from query or default to current
-    selected_month = request.args.get('month', datetime.now().strftime('%Y-%m'))
-    
-    # Query activities for that month
-    query = '''
-        SELECT * FROM daily_activities 
-        WHERE student_id = ? AND LEFT(activity_date, 7) = ?
-        ORDER BY activity_date DESC, created_at DESC
-    '''
-    activities = conn.execute(query, (student_id, selected_month)).fetchall()
-    conn.close()
-    
-    # Format month name for display
-    dt = datetime.strptime(selected_month, '%Y-%m')
-    selected_month_name = dt.strftime('%B %Y')
-    
-    return render_template('parent_activity_report.html', 
-                         student=student, 
-                         activities=activities, 
-                         selected_month=selected_month,
-                         selected_month_name=selected_month_name)
-
-@app.route('/dashboard')
-def dashboard():
-    if not is_logged_in(): return redirect(url_for('login'))
-    
-    conn = get_db_connection()
-    # Count only active students
-    student_count = conn.execute('SELECT COUNT(*) FROM students WHERE is_active = 1').fetchone()[0]
-    
-    # Fetch recent parent reports
-    reports = conn.execute('''
-        SELECT r.*, s.name as student_name, s.grade 
-        FROM parent_reports r
-        JOIN students s ON r.student_id = s.id
-        ORDER BY r.report_date DESC LIMIT 5
-    ''').fetchall()
-
-    # Fetch recent instructions
-    instructions = conn.execute('SELECT * FROM instructions ORDER BY created_at DESC LIMIT 5').fetchall()
-    
-    # Fetch lists for target selection (Active only)
-    all_students = conn.execute('SELECT id, name, grade FROM students WHERE is_active = 1 ORDER BY grade, name').fetchall()
-    grades = sorted(list(set(s['grade'] for s in all_students)))
-    
-    conn.close()
-    
-    return render_template('dashboard.html', 
-                           student_count=student_count, 
-                           reports=reports, 
-                           instructions=instructions,
-                           all_students=all_students,
-                           grades=grades)
-
-@app.route('/all_reports')
-def all_reports():
-    if not is_logged_in(): return redirect(url_for('login'))
-    
-    conn = get_db_connection()
-    reports = conn.execute('''
-        SELECT r.*, s.name as student_name, s.grade 
-        FROM parent_reports r
-        JOIN students s ON r.student_id = s.id
-        ORDER BY r.report_date DESC
-    ''').fetchall()
-    conn.close()
-    
-    return render_template('all_reports.html', reports=reports)
-
-@app.route('/add_instruction', methods=['POST'])
-def add_instruction():
-    if not is_logged_in(): return redirect(url_for('login'))
-    
-    message = request.form.get('message')
-    recipient = request.form.get('recipient')
-    
-    target_type = 'all'
-    target_value = None
-    
-    if recipient:
-        if recipient.startswith('grade_'):
-            target_type = 'grade'
-            target_value = recipient.split('_')[1]
-        elif recipient.startswith('student_'):
-            target_type = 'student'
-            target_value = recipient.split('_')[1]
-    
-    conn = get_db_connection()
-    conn.execute('INSERT INTO instructions (message, target_type, target_value) VALUES (?, ?, ?)', 
-                 (message, target_type, target_value))
+    conn.execute(
+        'INSERT INTO tuitions (name, phone, email, password, address) VALUES (?, ?, ?, ?, ?)',
+        (name, phone, email, password, address)
+    )
     conn.commit()
+
+    tuition = conn.execute('SELECT * FROM tuitions WHERE phone = ?', (phone,)).fetchone()
     conn.close()
-    
-    flash('Instruction sent successfully!')
-    return redirect(url_for('dashboard'))
 
-@app.route('/delete_instruction/<int:id>', methods=['POST'])
-def delete_instruction(id):
-    if not is_logged_in(): return redirect(url_for('login'))
-    
-    conn = get_db_connection()
-    conn.execute('DELETE FROM instructions WHERE id = ?', (id,))
-    conn.commit()
-    conn.close()
-    
-    flash('Instruction deleted successfully!')
-    return redirect(url_for('dashboard'))
+    # Create JWT token for the new tuition
+    token = create_access_token(identity={'tuition_id': tuition['id'], 'type': 'tuition_admin'})
 
-# --- Student Management ---
-
-@app.route('/students')
-def students():
-    if not is_logged_in(): return redirect(url_for('login'))
-    
-    show_inactive = request.args.get('show_inactive') == '1'
-    
-    conn = get_db_connection()
-    all_students_list = conn.execute('SELECT * FROM students').fetchall()
-    conn.close()
-    
-    # Filter active students for display unless show_inactive is requested
-    # Handle potential None for is_active if something went wrong, default to 1 (True)
-    if show_inactive:
-        display_students = all_students_list
-    else:
-        display_students = [s for s in all_students_list if s.get('is_active', 1) == 1]
-
-    # Calculate Summary Stats (Blood and DOB include ALL students as requested)
-    blood_groups = {}
-    grades = {}
-    birthday_students = []
-    current_month = datetime.now().month
-    
-    for s in all_students_list:
-        # Blood Group (ALL students)
-        bg = s.get('blood_group')
-        # Normalize specific inputs if necessary, primarily handle None
-        bg_label = bg if bg else 'Not Set'
-        blood_groups[bg_label] = blood_groups.get(bg_label, 0) + 1
-            
-        # Birthday (ALL students)
-        dob = s.get('dob')
-        if dob:
-            try:
-                if isinstance(dob, str):
-                    # Handle YYYY-MM-DD string format
-                    parts = dob.split('-')
-                    if len(parts) == 3:
-                        dob_month = int(parts[1])
-                        if dob_month == current_month:
-                            birthday_students.append(s)
-            except Exception:
-                pass
-
-    # Grade Stats (Only Displayed Students)
-    for s in display_students:
-        gr = s.get('grade')
-        gr_label = str(gr) if gr is not None else 'Not Set'
-        grades[gr_label] = grades.get(gr_label, 0) + 1
-
-    # Sort grades reasonably well
-    try:
-        sorted_grades = sorted(grades.items(), key=lambda x: int(x[0]) if x[0].isdigit() else 999)
-    except:
-        sorted_grades = sorted(grades.items())
-
-    summary = {
-        'blood_groups': blood_groups,
-        'grades': sorted_grades,
-        'birthday_count': len(birthday_students),
-        'birthday_students': birthday_students
-    }
-
-    return render_template('students.html', students=display_students, summary=summary)
-
-@app.route('/students/add', methods=['POST'])
-def add_student():
-    if not is_logged_in(): return redirect(url_for('login'))
-    
-    if request.method == 'POST':
-        name = request.form['name']
-        grade = request.form['grade']
-        parent_name = request.form['parent_name']
-        parent_contact = request.form['parent_contact']
-        monthly_fee = request.form['monthly_fee']
-        dob = request.form.get('dob')
-        blood_group = request.form.get('blood_group')
-        
-        conn = get_db_connection()
-        conn.execute('INSERT INTO students (name, grade, parent_name, parent_contact, monthly_fee, dob, blood_group) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                     (name, grade, parent_name, parent_contact, monthly_fee, dob, blood_group))
-        conn.commit()
-        conn.close()
-        flash('Student added successfully!')
-    return redirect(url_for('students'))
-
-@app.route('/students/add_activity', methods=['POST'])
-def add_activity():
-    if not is_logged_in(): return redirect(url_for('login'))
-    
-    if request.method == 'POST':
-        student_id = request.form['student_id']
-        content = request.form['content']
-        activity_date = request.form.get('activity_date', datetime.now().strftime('%Y-%m-%d'))
-        
-        conn = get_db_connection()
-        conn.execute('INSERT INTO daily_activities (student_id, activity_date, content) VALUES (?, ?, ?)',
-                     (student_id, activity_date, content))
-        conn.commit()
-        conn.close()
-        flash('Activity logged successfully.')
-        
-    return redirect(url_for('students'))
-
-@app.route('/students/activity_report/<int:student_id>')
-def activity_report(student_id):
-    if not is_logged_in(): return redirect(url_for('login'))
-    
-    conn = get_db_connection()
-    student = conn.execute('SELECT * FROM students WHERE id = ?', (student_id,)).fetchone()
-    
-    # Get month from query or default to current
-    selected_month = request.args.get('month', datetime.now().strftime('%Y-%m'))
-    
-    # Query activities for that month
-    query = '''
-        SELECT * FROM daily_activities 
-        WHERE student_id = ? AND LEFT(activity_date, 7) = ?
-        ORDER BY activity_date DESC, created_at DESC
-    '''
-    activities = conn.execute(query, (student_id, selected_month)).fetchall()
-    conn.close()
-    
-    # Format month name for display
-    dt = datetime.strptime(selected_month, '%Y-%m')
-    selected_month_name = dt.strftime('%B %Y')
-    
-    return render_template('activity_report.html', 
-                         student=student, 
-                         activities=activities, 
-                         selected_month=selected_month,
-                         selected_month_name=selected_month_name)
-
-@app.route('/activity/delete/<int:id>', methods=['POST'])
-def delete_activity(id):
-    if not is_logged_in(): return redirect(url_for('login'))
-    
-    conn = get_db_connection()
-    try:
-        # Get student_id to redirect back
-        activity = conn.execute('SELECT student_id, activity_date FROM daily_activities WHERE id = ?', (id,)).fetchone()
-        if activity:
-            student_id = activity['student_id']
-            try:
-                # Need to convert date to YYYY-MM for the redirection to keep context if possible, 
-                # but simpler to just redirect to the report for that month
-                activity_month = activity['activity_date'][:7] 
-            except:
-                activity_month = datetime.now().strftime('%Y-%m')
-                
-            conn.execute('DELETE FROM daily_activities WHERE id = ?', (id,))
-            conn.commit()
-            
-            flash('Activity deleted.')
-            return redirect(url_for('activity_report', student_id=student_id, month=activity_month))
-    except Exception as e:
-        print(f"Error deleting activity: {e}")
-        flash('Error deleting activity. Please try again.', 'danger')
-    finally:
-        conn.close()
-    
-    return redirect(url_for('students'))
-
-@app.route('/students/edit/<int:id>', methods=['GET', 'POST'])
-def edit_student(id):
-    if not is_logged_in(): return redirect(url_for('login'))
-    
-    conn = get_db_connection()
-    if request.method == 'POST':
-        name = request.form['name']
-        grade = request.form['grade']
-        parent_name = request.form['parent_name']
-        parent_contact = request.form['parent_contact']
-        monthly_fee = request.form['monthly_fee']
-        dob = request.form.get('dob')
-        blood_group = request.form.get('blood_group')
-        is_active = 1 if 'is_active' in request.form else 0
-        
-        conn.execute('UPDATE students SET name = ?, grade = ?, parent_name = ?, parent_contact = ?, monthly_fee = ?, dob = ?, blood_group = ?, is_active = ? WHERE id = ?',
-                     (name, grade, parent_name, parent_contact, monthly_fee, dob, blood_group, is_active, id))
-        conn.commit()
-        conn.close()
-        flash('Student updated successfully!')
-        return redirect(url_for('students'))
-    
-    student = conn.execute('SELECT * FROM students WHERE id = ?', (id,)).fetchone()
-    conn.close()
-    return render_template('edit_student.html', student=student)
-
-@app.route('/students/delete/<int:id>')
-def delete_student(id):
-    if not is_logged_in(): return redirect(url_for('login'))
-    
-    conn = get_db_connection()
-    student = conn.execute('SELECT is_active FROM students WHERE id = ?', (id,)).fetchone()
-    if not student:
-        conn.close()
-        flash('Student not found!', 'danger')
-        return redirect(url_for('students'))
-        
-    if student.get('is_active', 1) == 1:
-        conn.close()
-        flash('Cannot delete an active student. Please deactivate the student first.', 'danger')
-        return redirect(url_for('students'))
-        
-    conn.execute('DELETE FROM students WHERE id = ?', (id,))
-    conn.commit()
-    conn.close()
-    flash('Student deleted successfully!')
-    return redirect(url_for('students'))
-
-@app.route('/students/toggle_active/<int:id>', methods=['POST'])
-def toggle_student_active(id):
-    if not is_logged_in(): return redirect(url_for('login'))
-    
-    conn = get_db_connection()
-    student = conn.execute('SELECT is_active FROM students WHERE id = ?', (id,)).fetchone()
-    if student:
-        new_status = 0 if student.get('is_active', 1) == 1 else 1
-        conn.execute('UPDATE students SET is_active = ? WHERE id = ?', (new_status, id))
-        conn.commit()
-        flash('Student {} successfully!'.format('activated' if new_status == 1 else 'deactivated'))
-    conn.close()
-    return redirect(url_for('students', show_inactive='1'))
-
-# --- Attendance Management ---
-
-@app.route('/attendance')
-def attendance():
-    if not is_logged_in(): return redirect(url_for('login'))
-    
-    conn = get_db_connection()
-    # Filter active students
-    students = conn.execute('SELECT * FROM students WHERE is_active = 1').fetchall()
-    
-    selected_date = request.args.get('date')
-    attendance_records = {} # Map student_id to status
-    daily_stats = None
-
-    if selected_date:
-        records = conn.execute('SELECT * FROM attendance WHERE date = ?', (selected_date,)).fetchall()
-        for r in records:
-            attendance_records[r['student_id']] = r['status']
-        
-        # Calculate Daily Stats
-        present_count = sum(1 for status in attendance_records.values() if status == 'Present')
-        absent_count = sum(1 for status in attendance_records.values() if status == 'Absent')
-        not_marked_count = len(students) - len(attendance_records)
-        daily_stats = {
-            'present': present_count,
-            'absent': absent_count,
-            'not_marked': not_marked_count
+    return success({
+        'token': token,
+        'tuition': {
+            'id': tuition['id'],
+            'name': tuition['name'],
+            'phone': tuition['phone'],
+            'email': tuition['email'],
+            'address': tuition['address']
         }
-            
-    # --- Monthly Stats ---
-    selected_month = request.args.get('month', datetime.now().strftime('%Y-%m'))
-    
-    stats_query = '''
-        SELECT 
-            s.id, s.name, s.grade,
-            COUNT(a.id) as total_marked,
-            SUM(CASE WHEN a.status = 'Present' THEN 1 ELSE 0 END) as present_count
-        FROM students s
-        LEFT JOIN attendance a ON s.id = a.student_id AND LEFT(a.date, 7) = ?
-        WHERE s.is_active = 1
-        GROUP BY s.id
-    '''
-    stats_data = conn.execute(stats_query, (selected_month,)).fetchall()
-    
-    stats = []
-    for row in stats_data:
-        total = row['total_marked']
-        present = row['present_count'] if row['present_count'] else 0
-        percentage = (present / total * 100) if total > 0 else 0
-        stats.append({
-            'name': row['name'],
-            'grade': row['grade'],
-            'total': total,
-            'present': present,
-            'percentage': round(percentage, 1)
-        })
+    }, 'Tuition registered successfully!', 201)
 
-    conn.close()
-    return render_template('attendance.html', 
-                           students=students, 
-                           date=selected_date, 
-                           attendance=attendance_records,
-                           stats=stats,
-                           selected_month=selected_month,
-                           daily_stats=daily_stats)
 
-@app.route('/attendance/save_bulk', methods=['POST'])
-def save_bulk_attendance():
-    if not is_logged_in(): return redirect(url_for('login'))
-    
-    date = request.form['date']
+@app.route('/api/auth/login', methods=['POST'])
+def login():
+    """Login for tuition admin."""
+    data = request.get_json(silent=True, force=True) or {}
+
+    phone    = data.get('phone', '').strip()
+    password = data.get('password', '').strip()
+
+    if not phone or not password:
+        return error('Phone and password are required.')
+
     conn = get_db_connection()
-    
-    # Process all form fields
-    for key, value in request.form.items():
-        if key.startswith('status_'):
-            student_id = key.split('_')[1]
-            status = value
-            
-            # Check if exists
-            existing = conn.execute('SELECT id FROM attendance WHERE student_id = ? AND date = ?', (student_id, date)).fetchone()
-            
-            if existing:
-                conn.execute('UPDATE attendance SET status = ? WHERE id = ?', (status, existing['id']))
-            else:
-                conn.execute('INSERT INTO attendance (student_id, date, status) VALUES (?, ?, ?)', (student_id, date, status))
-    
+    tuition = conn.execute(
+        'SELECT * FROM tuitions WHERE phone = ? AND password = ? AND is_active = 1',
+        (phone, password)
+    ).fetchone()
+    conn.close()
+
+    if not tuition:
+        return error('Invalid phone or password.', 401)
+
+    token = create_access_token(identity={'tuition_id': tuition['id'], 'type': 'tuition_admin'})
+
+    return success({
+        'token': token,
+        'tuition': {
+            'id': tuition['id'],
+            'name': tuition['name'],
+            'phone': tuition['phone'],
+            'email': tuition['email'],
+            'address': tuition['address']
+        }
+    }, 'Logged in successfully!')
+
+
+@app.route('/api/auth/parent-login', methods=['POST'])
+def parent_login():
+    """Login for parents using their phone number."""
+    data = request.get_json(silent=True, force=True) or {}
+
+    phone      = data.get('phone', '').strip()
+    tuition_id = data.get('tuition_id')
+
+    if not phone or not tuition_id:
+        return error('Phone and tuition ID are required.')
+
+    conn = get_db_connection()
+    students = conn.execute(
+        'SELECT * FROM students WHERE tuition_id = ? AND parent_contact = ? AND is_active = 1',
+        (tuition_id, phone)
+    ).fetchall()
+    conn.close()
+
+    if not students:
+        return error('Phone number not registered with any student in this tuition.', 401)
+
+    token = create_access_token(identity={
+        'tuition_id': tuition_id,
+        'parent_phone': phone,
+        'type': 'parent'
+    })
+
+    return success({
+        'token': token,
+        'students': [{'id': s['id'], 'name': s['name'], 'grade': s['grade']} for s in students]
+    }, 'Logged in successfully!')
+
+
+@app.route('/api/auth/profile', methods=['GET'])
+@jwt_required()
+def get_profile():
+    """Get current logged-in tuition profile."""
+    tuition_id = get_tuition_id()
+    conn = get_db_connection()
+    tuition = conn.execute('SELECT * FROM tuitions WHERE id = ?', (tuition_id,)).fetchone()
+    conn.close()
+
+    if not tuition:
+        return error('Tuition not found.', 404)
+
+    return success({
+        'id': tuition['id'],
+        'name': tuition['name'],
+        'phone': tuition['phone'],
+        'email': tuition['email'],
+        'address': tuition['address'],
+        'logo_url': tuition['logo_url']
+    })
+
+
+# ══════════════════════════════════════════
+#  STUDENTS ROUTES
+# ══════════════════════════════════════════
+
+@app.route('/api/students', methods=['GET'])
+@jwt_required()
+def get_students():
+    """Get all students for this tuition."""
+    tuition_id  = get_tuition_id()
+    show_inactive = request.args.get('show_inactive', 'false') == 'true'
+
+    conn = get_db_connection()
+    if show_inactive:
+        students = conn.execute(
+            'SELECT * FROM students WHERE tuition_id = ? ORDER BY grade, name',
+            (tuition_id,)
+        ).fetchall()
+    else:
+        students = conn.execute(
+            'SELECT * FROM students WHERE tuition_id = ? AND is_active = 1 ORDER BY grade, name',
+            (tuition_id,)
+        ).fetchall()
+    conn.close()
+
+    return success([dict(s) for s in students])
+
+
+@app.route('/api/students', methods=['POST'])
+@jwt_required()
+def add_student():
+    """Add a new student to this tuition."""
+    tuition_id = get_tuition_id()
+    data = request.get_json(silent=True, force=True) or {}
+
+    name           = data.get('name', '').strip()
+    grade          = data.get('grade')
+    parent_name    = data.get('parent_name', '').strip()
+    parent_contact = data.get('parent_contact', '').strip()
+    monthly_fee    = data.get('monthly_fee', 0)
+    dob            = data.get('dob', '')
+    blood_group    = data.get('blood_group', '')
+
+    if not name or not grade or not parent_name or not parent_contact:
+        return error('Name, grade, parent name, and contact are required.')
+
+    conn = get_db_connection()
+    conn.execute(
+        '''INSERT INTO students
+           (tuition_id, name, grade, parent_name, parent_contact, monthly_fee, dob, blood_group)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
+        (tuition_id, name, grade, parent_name, parent_contact, monthly_fee, dob, blood_group)
+    )
+    conn.commit()
+
+    student_id = conn.execute('SELECT LAST_INSERT_ID() as id').fetchone()['id']
+    student = conn.execute('SELECT * FROM students WHERE id = ?', (student_id,)).fetchone()
+    conn.close()
+
+    return success(dict(student), 'Student added successfully!', 201)
+
+
+@app.route('/api/students/<int:student_id>', methods=['GET'])
+@jwt_required()
+def get_student(student_id):
+    """Get a single student by ID."""
+    tuition_id = get_tuition_id()
+    conn = get_db_connection()
+    student = conn.execute(
+        'SELECT * FROM students WHERE id = ? AND tuition_id = ?',
+        (student_id, tuition_id)
+    ).fetchone()
+    conn.close()
+
+    if not student:
+        return error('Student not found.', 404)
+
+    return success(dict(student))
+
+
+@app.route('/api/students/<int:student_id>', methods=['PUT'])
+@jwt_required()
+def update_student(student_id):
+    """Update student details."""
+    tuition_id = get_tuition_id()
+    data = request.get_json(silent=True, force=True) or {}
+
+    conn = get_db_connection()
+    conn.execute(
+        '''UPDATE students SET
+           name = ?, grade = ?, parent_name = ?, parent_contact = ?,
+           monthly_fee = ?, dob = ?, blood_group = ?, is_active = ?
+           WHERE id = ? AND tuition_id = ?''',
+        (
+            data.get('name'),
+            data.get('grade'),
+            data.get('parent_name'),
+            data.get('parent_contact'),
+            data.get('monthly_fee', 0),
+            data.get('dob', ''),
+            data.get('blood_group', ''),
+            1 if data.get('is_active', True) else 0,
+            student_id,
+            tuition_id
+        )
+    )
     conn.commit()
     conn.close()
-    flash('Attendance saved successfully!')
-    return redirect(url_for('attendance', date=date))
 
-@app.route('/attendance/history')
-def attendance_history():
-    if not is_logged_in(): return redirect(url_for('login'))
-    
+    return success(message='Student updated successfully!')
+
+
+@app.route('/api/students/<int:student_id>', methods=['DELETE'])
+@jwt_required()
+def delete_student(student_id):
+    """Delete a student (only if inactive)."""
+    tuition_id = get_tuition_id()
     conn = get_db_connection()
-    # Join to get student names
-    history = conn.execute('''
-        SELECT a.*, s.name 
-        FROM attendance a 
-        JOIN students s ON a.student_id = s.id 
-        ORDER BY date DESC
-    ''').fetchall()
+
+    student = conn.execute(
+        'SELECT is_active FROM students WHERE id = ? AND tuition_id = ?',
+        (student_id, tuition_id)
+    ).fetchone()
+
+    if not student:
+        conn.close()
+        return error('Student not found.', 404)
+
+    if student['is_active'] == 1:
+        conn.close()
+        return error('Deactivate the student before deleting.')
+
+    conn.execute('DELETE FROM students WHERE id = ? AND tuition_id = ?', (student_id, tuition_id))
+    conn.commit()
     conn.close()
-    return render_template('attendance_history.html', history=history)
 
-# --- Fee Management ---
+    return success(message='Student deleted successfully!')
 
-@app.route('/fees', methods=['GET'])
-def fees():
-    if not is_logged_in(): return redirect(url_for('login'))
-    
-    selected_month = request.args.get('month', datetime.now().strftime('%Y-%m'))
-    
+
+@app.route('/api/students/<int:student_id>/toggle-active', methods=['POST'])
+@jwt_required()
+def toggle_student_active(student_id):
+    """Toggle student active/inactive status."""
+    tuition_id = get_tuition_id()
     conn = get_db_connection()
-    students = conn.execute('SELECT * FROM students WHERE is_active = 1').fetchall()
-    
-    # Fetch fees matching the selected month
-    fees_records = conn.execute('SELECT * FROM fees WHERE month_year = ?', (selected_month,)).fetchall()
-    fee_map = {f['student_id']: f for f in fees_records}
-    
-    student_fees_list = []
-    
-    # Calculate Stats
-    stats = {
-        'paid_count': 0,
-        'unpaid_count': 0,
-        'total_collected': 0,
-        'total_pending': 0
-    }
+
+    student = conn.execute(
+        'SELECT is_active FROM students WHERE id = ? AND tuition_id = ?',
+        (student_id, tuition_id)
+    ).fetchone()
+
+    if not student:
+        conn.close()
+        return error('Student not found.', 404)
+
+    new_status = 0 if student['is_active'] == 1 else 1
+    conn.execute(
+        'UPDATE students SET is_active = ? WHERE id = ? AND tuition_id = ?',
+        (new_status, student_id, tuition_id)
+    )
+    conn.commit()
+    conn.close()
+
+    status_text = 'activated' if new_status == 1 else 'deactivated'
+    return success(message=f'Student {status_text} successfully!')
+
+
+# ══════════════════════════════════════════
+#  ATTENDANCE ROUTES
+# ══════════════════════════════════════════
+
+@app.route('/api/attendance', methods=['GET'])
+@jwt_required()
+def get_attendance():
+    """Get attendance for a specific date (and optionally session)."""
+    tuition_id = get_tuition_id()
+    date    = request.args.get('date')
+    session = request.args.get('session', 'Evening')
+
+    if not date:
+        return error('Date is required.')
+
+    conn = get_db_connection()
+    records = conn.execute(
+        'SELECT * FROM attendance WHERE tuition_id = ? AND date = ? AND session = ?',
+        (tuition_id, date, session)
+    ).fetchall()
+    conn.close()
+
+    # Return as a map: student_id -> status
+    attendance_map = {str(r['student_id']): r['status'] for r in records}
+    return success(attendance_map)
+
+
+@app.route('/api/attendance/bulk', methods=['POST'])
+@jwt_required()
+def save_bulk_attendance():
+    """Save attendance for multiple students at once."""
+    tuition_id = get_tuition_id()
+    data = request.get_json(silent=True, force=True) or {}
+
+    date       = data.get('date')
+    session    = data.get('session', 'Evening')
+    status_map = data.get('status_map', {})  # { "student_id": "Present/Absent" }
+
+    if not date or not status_map:
+        return error('Date and status_map are required.')
+
+    conn = get_db_connection()
+
+    for student_id, status in status_map.items():
+        existing = conn.execute(
+            'SELECT id FROM attendance WHERE tuition_id = ? AND student_id = ? AND date = ? AND session = ?',
+            (tuition_id, student_id, date, session)
+        ).fetchone()
+
+        if existing:
+            conn.execute(
+                'UPDATE attendance SET status = ? WHERE id = ?',
+                (status, existing['id'])
+            )
+        else:
+            conn.execute(
+                'INSERT INTO attendance (tuition_id, student_id, date, session, status) VALUES (?, ?, ?, ?, ?)',
+                (tuition_id, student_id, date, session, status)
+            )
+
+    conn.commit()
+    conn.close()
+
+    return success(message='Attendance saved successfully!')
+
+
+@app.route('/api/attendance/monthly-stats', methods=['GET'])
+@jwt_required()
+def get_monthly_attendance_stats():
+    """Get per-student attendance stats for a given month."""
+    tuition_id     = get_tuition_id()
+    month = request.args.get('month', datetime.now().strftime('%Y-%m'))
+
+    conn = get_db_connection()
+    stats = conn.execute(
+        '''SELECT s.id, s.name, s.grade,
+               COUNT(a.id) as total_marked,
+               SUM(CASE WHEN a.status = 'Present' THEN 1 ELSE 0 END) as present_count
+           FROM students s
+           LEFT JOIN attendance a
+               ON s.id = a.student_id
+               AND a.tuition_id = ?
+               AND LEFT(a.date, 7) = ?
+           WHERE s.tuition_id = ? AND s.is_active = 1
+           GROUP BY s.id, s.name, s.grade
+           ORDER BY s.grade, s.name''',
+        (tuition_id, month, tuition_id)
+    ).fetchall()
+    conn.close()
+
+    result = []
+    for row in stats:
+        total   = row['total_marked'] or 0
+        present = row['present_count'] or 0
+        pct     = round((present / total * 100), 1) if total > 0 else 0
+        result.append({
+            'student_id': row['id'],
+            'name':       row['name'],
+            'grade':      row['grade'],
+            'total':      total,
+            'present':    present,
+            'percentage': pct
+        })
+
+    return success(result)
+
+
+# ══════════════════════════════════════════
+#  DAILY ACTIVITIES ROUTES
+# ══════════════════════════════════════════
+
+@app.route('/api/activities', methods=['POST'])
+@jwt_required()
+def add_activity():
+    """Log a daily activity for a student."""
+    tuition_id = get_tuition_id()
+    data = request.get_json(silent=True, force=True) or {}
+
+    student_id    = data.get('student_id')
+    content       = data.get('content', '').strip()
+    activity_date = data.get('activity_date', datetime.now().strftime('%Y-%m-%d'))
+
+    if not student_id or not content:
+        return error('Student ID and content are required.')
+
+    conn = get_db_connection()
+    conn.execute(
+        'INSERT INTO daily_activities (tuition_id, student_id, activity_date, content) VALUES (?, ?, ?, ?)',
+        (tuition_id, student_id, activity_date, content)
+    )
+    conn.commit()
+    conn.close()
+
+    return success(message='Activity logged successfully!', status=201)
+
+
+@app.route('/api/activities/<int:student_id>', methods=['GET'])
+@jwt_required()
+def get_activities(student_id):
+    """Get activities for a student filtered by month."""
+    tuition_id = get_tuition_id()
+    month = request.args.get('month', datetime.now().strftime('%Y-%m'))
+
+    conn = get_db_connection()
+    activities = conn.execute(
+        '''SELECT * FROM daily_activities
+           WHERE tuition_id = ? AND student_id = ? AND LEFT(activity_date, 7) = ?
+           ORDER BY activity_date DESC, created_at DESC''',
+        (tuition_id, student_id, month)
+    ).fetchall()
+    conn.close()
+
+    return success([dict(a) for a in activities])
+
+
+@app.route('/api/activities/<int:activity_id>', methods=['DELETE'])
+@jwt_required()
+def delete_activity(activity_id):
+    """Delete a daily activity."""
+    tuition_id = get_tuition_id()
+    conn = get_db_connection()
+
+    activity = conn.execute(
+        'SELECT * FROM daily_activities WHERE id = ? AND tuition_id = ?',
+        (activity_id, tuition_id)
+    ).fetchone()
+
+    if not activity:
+        conn.close()
+        return error('Activity not found.', 404)
+
+    conn.execute('DELETE FROM daily_activities WHERE id = ?', (activity_id,))
+    conn.commit()
+    conn.close()
+
+    return success(message='Activity deleted successfully!')
+
+
+# ══════════════════════════════════════════
+#  FEES ROUTES
+# ══════════════════════════════════════════
+
+@app.route('/api/fees', methods=['GET'])
+@jwt_required()
+def get_fees():
+    """Get fee status for all active students in a given month."""
+    tuition_id = get_tuition_id()
+    month = request.args.get('month', datetime.now().strftime('%Y-%m'))
+
+    conn = get_db_connection()
+    students = conn.execute(
+        'SELECT * FROM students WHERE tuition_id = ? AND is_active = 1 ORDER BY grade, name',
+        (tuition_id,)
+    ).fetchall()
+
+    fees = conn.execute(
+        'SELECT * FROM fees WHERE tuition_id = ? AND month_year = ?',
+        (tuition_id, month)
+    ).fetchall()
+    conn.close()
+
+    fee_map = {f['student_id']: f for f in fees}
+
+    result = []
+    stats = {'paid': 0, 'unpaid': 0, 'total_collected': 0, 'total_pending': 0}
 
     for s in students:
         fee = fee_map.get(s['id'])
-        if fee:
-            status = fee['status']
-            amount = fee['amount']
-        else:
-            status = 'Unpaid'
-            amount = s['monthly_fee'] # Default
-            
-        student_fees_list.append({
-            'student': s,
-            'status': status,
-            'amount': amount,
-            'fee_id': fee['id'] if fee else None
+        status = fee['status'] if fee else 'Unpaid'
+        amount = fee['amount'] if fee else s['monthly_fee']
+
+        result.append({
+            'student_id':   s['id'],
+            'student_name': s['name'],
+            'grade':        s['grade'],
+            'fee_id':       fee['id'] if fee else None,
+            'status':       status,
+            'amount':       amount,
+            'payment_date': fee['payment_date'] if fee else None,
         })
 
-        # Update Stats
         if status == 'Paid':
-            stats['paid_count'] += 1
-            stats['total_collected'] += amount if amount else 0
+            stats['paid'] += 1
+            stats['total_collected'] += amount or 0
         else:
-            stats['unpaid_count'] += 1
-            stats['total_pending'] += amount if amount else 0
-        
-    conn.close()
-    return render_template('fees.html', students=student_fees_list, selected_month=selected_month, stats=stats)
+            stats['unpaid'] += 1
+            stats['total_pending'] += amount or 0
 
-@app.route('/fees/quick_pay', methods=['POST'])
+    return success({'students': result, 'stats': stats})
+
+
+@app.route('/api/fees/quick-pay', methods=['POST'])
+@jwt_required()
 def quick_pay():
-    if not is_logged_in(): return redirect(url_for('login'))
-    
-    student_id = request.form['student_id']
-    month_year = request.form['month_year']
-    amount = request.form['amount']
-    
-    payment_date = datetime.now().strftime('%Y-%m-%d')
-    
-    conn = get_db_connection()
-    # Check if record exists
-    existing = conn.execute('SELECT id FROM fees WHERE student_id = ? AND month_year = ?', (student_id, month_year)).fetchone()
-    
+    """Mark a student's fee as paid for a given month."""
+    tuition_id = get_tuition_id()
+    data = request.get_json(silent=True, force=True) or {}
+
+    student_id = data.get('student_id')
+    month_year = data.get('month_year')
+    amount     = data.get('amount', 0)
+
+    if not student_id or not month_year:
+        return error('Student ID and month_year are required.')
+
+    today = datetime.now().strftime('%Y-%m-%d')
+    conn  = get_db_connection()
+
+    existing = conn.execute(
+        'SELECT id FROM fees WHERE tuition_id = ? AND student_id = ? AND month_year = ?',
+        (tuition_id, student_id, month_year)
+    ).fetchone()
+
     if existing:
-        conn.execute('UPDATE fees SET status = "Paid", amount = ?, payment_date = ? WHERE id = ?', 
-                     (amount, payment_date, existing['id']))
+        conn.execute(
+            'UPDATE fees SET status = "Paid", amount = ?, payment_date = ? WHERE id = ?',
+            (amount, today, existing['id'])
+        )
     else:
-        conn.execute('INSERT INTO fees (student_id, month_year, amount, status, payment_date) VALUES (?, ?, ?, "Paid", ?)',
-                     (student_id, month_year, amount, payment_date))
-    
+        conn.execute(
+            'INSERT INTO fees (tuition_id, student_id, month_year, amount, status, payment_date) VALUES (?, ?, ?, ?, "Paid", ?)',
+            (tuition_id, student_id, month_year, amount, today)
+        )
+
     conn.commit()
     conn.close()
-    return redirect(url_for('fees', month=month_year))
 
-@app.route('/fees/student/<int:student_id>', methods=['GET', 'POST'])
-def student_fees(student_id):
-    if not is_logged_in(): return redirect(url_for('login'))
-    
+    return success(message='Payment recorded successfully!')
+
+
+@app.route('/api/fees/student/<int:student_id>', methods=['GET'])
+@jwt_required()
+def get_student_fees(student_id):
+    """Get full fee history for a single student."""
+    tuition_id = get_tuition_id()
     conn = get_db_connection()
-    
-    if request.method == 'POST':
-        month_year = request.form['month_year']
-        amount = request.form['amount']
-        status = request.form['status']
-        payment_date = request.form.get('payment_date', '')
-        
-        conn.execute('INSERT INTO fees (student_id, month_year, amount, status, payment_date) VALUES (?, ?, ?, ?, ?)',
-                     (student_id, month_year, amount, status, payment_date))
-        conn.commit()
-    
-    student = conn.execute('SELECT * FROM students WHERE id = ?', (student_id,)).fetchone()
-    fees_history = conn.execute('SELECT * FROM fees WHERE student_id = ? ORDER BY id DESC', (student_id,)).fetchall()
-    conn.close()
-    
-    return render_template('student_fees.html', student=student, fees=fees_history)
 
-@app.route('/fees/update/<int:fee_id>', methods=['POST'])
+    fees = conn.execute(
+        'SELECT * FROM fees WHERE tuition_id = ? AND student_id = ? ORDER BY month_year DESC',
+        (tuition_id, student_id)
+    ).fetchall()
+    conn.close()
+
+    return success([dict(f) for f in fees])
+
+
+@app.route('/api/fees/<int:fee_id>', methods=['PUT'])
+@jwt_required()
 def update_fee(fee_id):
-    if not is_logged_in(): return redirect(url_for('login'))
-    
-    status = request.form['status']
-    payment_date = request.form['payment_date']
-    student_id = request.form['student_id']
-    
+    """Update a fee record's status and payment date."""
+    tuition_id = get_tuition_id()
+    data = request.get_json(silent=True, force=True) or {}
+
     conn = get_db_connection()
-    conn.execute('UPDATE fees SET status = ?, payment_date = ? WHERE id = ?', (status, payment_date, fee_id))
+    conn.execute(
+        'UPDATE fees SET status = ?, payment_date = ? WHERE id = ? AND tuition_id = ?',
+        (data.get('status'), data.get('payment_date'), fee_id, tuition_id)
+    )
     conn.commit()
     conn.close()
-    
-    return redirect(url_for('student_fees', student_id=student_id))
 
+    return success(message='Fee updated successfully!')
+
+
+# ══════════════════════════════════════════
+#  ANNOUNCEMENTS ROUTES
+# ══════════════════════════════════════════
+
+@app.route('/api/announcements', methods=['GET'])
+@jwt_required()
+def get_announcements():
+    """Get recent announcements for this tuition."""
+    tuition_id = get_tuition_id()
+    conn = get_db_connection()
+    announcements = conn.execute(
+        'SELECT * FROM announcements WHERE tuition_id = ? ORDER BY created_at DESC LIMIT 20',
+        (tuition_id,)
+    ).fetchall()
+    conn.close()
+    return success([dict(a) for a in announcements])
+
+
+@app.route('/api/announcements', methods=['POST'])
+@jwt_required()
+def add_announcement():
+    """Post a new announcement/instruction."""
+    tuition_id = get_tuition_id()
+    data = request.get_json(silent=True, force=True) or {}
+
+    message      = data.get('message', '').strip()
+    target_type  = data.get('target_type', 'all')
+    target_value = data.get('target_value')
+
+    if not message:
+        return error('Message is required.')
+
+    conn = get_db_connection()
+    conn.execute(
+        'INSERT INTO announcements (tuition_id, message, target_type, target_value) VALUES (?, ?, ?, ?)',
+        (tuition_id, message, target_type, target_value)
+    )
+    conn.commit()
+    conn.close()
+
+    return success(message='Announcement sent!', status=201)
+
+
+@app.route('/api/announcements/<int:announcement_id>', methods=['DELETE'])
+@jwt_required()
+def delete_announcement(announcement_id):
+    """Delete an announcement."""
+    tuition_id = get_tuition_id()
+    conn = get_db_connection()
+    conn.execute(
+        'DELETE FROM announcements WHERE id = ? AND tuition_id = ?',
+        (announcement_id, tuition_id)
+    )
+    conn.commit()
+    conn.close()
+    return success(message='Announcement deleted!')
+
+
+# ══════════════════════════════════════════
+#  PARENT REPORTS ROUTES
+# ══════════════════════════════════════════
+
+@app.route('/api/reports', methods=['GET'])
+@jwt_required()
+def get_reports():
+    """Get all parent reports for this tuition (admin view)."""
+    tuition_id = get_tuition_id()
+    conn = get_db_connection()
+    reports = conn.execute(
+        '''SELECT r.*, s.name as student_name, s.grade
+           FROM parent_reports r
+           JOIN students s ON r.student_id = s.id
+           WHERE r.tuition_id = ?
+           ORDER BY r.created_at DESC''',
+        (tuition_id,)
+    ).fetchall()
+    conn.close()
+    return success([dict(r) for r in reports])
+
+
+@app.route('/api/reports', methods=['POST'])
+@jwt_required()
+def submit_report():
+    """Parent submits a report/message to the tuition admin."""
+    identity   = get_jwt_identity()
+    tuition_id = identity.get('tuition_id')
+    data = request.get_json(silent=True, force=True) or {}
+
+    student_id = data.get('student_id')
+    message    = data.get('message', '').strip()
+
+    if not student_id or not message:
+        return error('Student ID and message are required.')
+
+    conn = get_db_connection()
+    conn.execute(
+        'INSERT INTO parent_reports (tuition_id, student_id, message) VALUES (?, ?, ?)',
+        (tuition_id, student_id, message)
+    )
+    conn.commit()
+    conn.close()
+
+    return success(message='Report submitted successfully!', status=201)
+
+
+# ══════════════════════════════════════════
+#  DASHBOARD ROUTE
+# ══════════════════════════════════════════
+
+@app.route('/api/dashboard', methods=['GET'])
+@jwt_required()
+def get_dashboard():
+    """Get summary stats for the admin dashboard."""
+    tuition_id = get_tuition_id()
+    conn = get_db_connection()
+
+    # Count active students
+    student_count = conn.execute(
+        'SELECT COUNT(*) as c FROM students WHERE tuition_id = ? AND is_active = 1',
+        (tuition_id,)
+    ).fetchone()['c']
+
+    # Fee stats for current month
+    current_month = datetime.now().strftime('%Y-%m')
+    fees = conn.execute(
+        'SELECT * FROM fees WHERE tuition_id = ? AND month_year = ?',
+        (tuition_id, current_month)
+    ).fetchall()
+
+    paid_count       = sum(1 for f in fees if f['status'] == 'Paid')
+    total_collected  = sum(f['amount'] or 0 for f in fees if f['status'] == 'Paid')
+
+    # Recent parent reports
+    reports = conn.execute(
+        '''SELECT r.*, s.name as student_name, s.grade
+           FROM parent_reports r JOIN students s ON r.student_id = s.id
+           WHERE r.tuition_id = ?
+           ORDER BY r.created_at DESC LIMIT 5''',
+        (tuition_id,)
+    ).fetchall()
+
+    # Recent announcements
+    announcements = conn.execute(
+        'SELECT * FROM announcements WHERE tuition_id = ? ORDER BY created_at DESC LIMIT 5',
+        (tuition_id,)
+    ).fetchall()
+
+    # Birthday students this month
+    current_month_num = str(datetime.now().month).zfill(2)
+    all_students = conn.execute(
+        'SELECT * FROM students WHERE tuition_id = ? AND is_active = 1',
+        (tuition_id,)
+    ).fetchall()
+
+    birthday_students = []
+    for s in all_students:
+        dob = s.get('dob')
+        if dob and len(dob) >= 7:
+            try:
+                dob_month = dob.split('-')[1]
+                if dob_month == current_month_num:
+                    birthday_students.append({'id': s['id'], 'name': s['name'], 'grade': s['grade'], 'dob': dob})
+            except Exception:
+                pass
+
+    conn.close()
+
+    return success({
+        'student_count':    student_count,
+        'paid_count':       paid_count,
+        'total_collected':  total_collected,
+        'reports':          [dict(r) for r in reports],
+        'announcements':    [dict(a) for a in announcements],
+        'birthday_students': birthday_students
+    })
+
+
+# ══════════════════════════════════════════
+#  ANALYTICS ROUTE
+# ══════════════════════════════════════════
+
+@app.route('/api/analytics', methods=['GET'])
+@jwt_required()
+def get_analytics():
+    """Get fee collection and attendance analytics for the last 6 months."""
+    tuition_id = get_tuition_id()
+    conn = get_db_connection()
+
+    # Fee data — last 6 months
+    fee_rows = conn.execute(
+        '''SELECT month_year, SUM(amount) as total
+           FROM fees
+           WHERE tuition_id = ? AND status = "Paid"
+           GROUP BY month_year
+           ORDER BY month_year DESC LIMIT 6''',
+        (tuition_id,)
+    ).fetchall()
+
+    # Attendance data — last 6 months
+    now = datetime.now()
+    months = [(now.year, now.month - i) for i in range(5, -1, -1)]
+    months = [(y + m // 12 if m <= 0 else y, m % 12 if m <= 0 else m) for y, m in months]
+    month_strings = [f"{y}-{str(m).zfill(2)}" for y, m in months]
+
+    att_data = {}
+    for m in month_strings:
+        rows = conn.execute(
+            '''SELECT COUNT(*) as total,
+                      SUM(CASE WHEN status = "Present" THEN 1 ELSE 0 END) as present
+               FROM attendance
+               WHERE tuition_id = ? AND LEFT(date, 7) = ?''',
+            (tuition_id, m)
+        ).fetchone()
+        total   = rows['total'] or 0
+        present = rows['present'] or 0
+        att_data[m] = round((present / total * 100), 1) if total > 0 else 0
+
+    conn.close()
+
+    return success({
+        'fees': {
+            'months': [r['month_year'] for r in fee_rows],
+            'values': [r['total'] or 0 for r in fee_rows]
+        },
+        'attendance': {
+            'months': month_strings,
+            'values': [att_data[m] for m in month_strings]
+        }
+    })
+
+
+# ══════════════════════════════════════════
+#  PARENT PORTAL ROUTES
+# ══════════════════════════════════════════
+
+@app.route('/api/parent/home', methods=['GET'])
+@jwt_required()
+def parent_home():
+    """Get parent dashboard data — children info, fees, activities, announcements."""
+    identity     = get_jwt_identity()
+    tuition_id   = identity.get('tuition_id')
+    parent_phone = identity.get('parent_phone')
+
+    conn = get_db_connection()
+
+    students = conn.execute(
+        'SELECT * FROM students WHERE tuition_id = ? AND parent_contact = ? AND is_active = 1',
+        (tuition_id, parent_phone)
+    ).fetchall()
+
+    children_data = []
+    for s in students:
+        # Attendance stats
+        att = conn.execute(
+            '''SELECT COUNT(*) as total,
+                      SUM(CASE WHEN status = "Present" THEN 1 ELSE 0 END) as present
+               FROM attendance WHERE student_id = ? AND tuition_id = ?''',
+            (s['id'], tuition_id)
+        ).fetchone()
+        total   = att['total'] or 0
+        present = att['present'] or 0
+
+        # Recent fees
+        fees = conn.execute(
+            'SELECT * FROM fees WHERE student_id = ? AND tuition_id = ? ORDER BY month_year DESC LIMIT 5',
+            (s['id'], tuition_id)
+        ).fetchall()
+
+        # Recent activities
+        activities = conn.execute(
+            '''SELECT * FROM daily_activities
+               WHERE student_id = ? AND tuition_id = ?
+               ORDER BY activity_date DESC LIMIT 3''',
+            (s['id'], tuition_id)
+        ).fetchall()
+
+        children_data.append({
+            'student': dict(s),
+            'attendance': {
+                'total':      total,
+                'present':    present,
+                'percentage': round((present / total * 100), 1) if total > 0 else 0
+            },
+            'fees':       [dict(f) for f in fees],
+            'activities': [dict(a) for a in activities]
+        })
+
+    # Announcements relevant to these students
+    all_announcements = conn.execute(
+        'SELECT * FROM announcements WHERE tuition_id = ? ORDER BY created_at DESC LIMIT 20',
+        (tuition_id,)
+    ).fetchall()
+
+    student_ids = [s['id'] for s in students]
+    grades      = [s['grade'] for s in students]
+    filtered    = []
+    for ann in all_announcements:
+        if ann['target_type'] == 'all' or ann['target_type'] is None:
+            filtered.append(dict(ann))
+        elif ann['target_type'] == 'grade' and ann['target_value'] and int(ann['target_value']) in grades:
+            filtered.append(dict(ann))
+        elif ann['target_type'] == 'student' and ann['target_value'] and int(ann['target_value']) in student_ids:
+            filtered.append(dict(ann))
+
+    conn.close()
+
+    return success({
+        'children':       children_data,
+        'announcements':  filtered[:5]
+    })
+
+
+@app.route('/api/parent/activities/<int:student_id>', methods=['GET'])
+@jwt_required()
+def parent_get_activities(student_id):
+    """Get activities for a student (parent view, filtered by month)."""
+    identity     = get_jwt_identity()
+    tuition_id   = identity.get('tuition_id')
+    parent_phone = identity.get('parent_phone')
+
+    month = request.args.get('month', datetime.now().strftime('%Y-%m'))
+
+    conn = get_db_connection()
+
+    # Verify this student belongs to this parent
+    student = conn.execute(
+        'SELECT * FROM students WHERE id = ? AND tuition_id = ? AND parent_contact = ?',
+        (student_id, tuition_id, parent_phone)
+    ).fetchone()
+
+    if not student:
+        conn.close()
+        return error('Access denied.', 403)
+
+    activities = conn.execute(
+        '''SELECT * FROM daily_activities
+           WHERE student_id = ? AND tuition_id = ? AND LEFT(activity_date, 7) = ?
+           ORDER BY activity_date DESC''',
+        (student_id, tuition_id, month)
+    ).fetchall()
+    conn.close()
+
+    return success([dict(a) for a in activities])
+
+
+# ══════════════════════════════════════════
+#  PUBLIC ROUTES (No Auth)
+# ══════════════════════════════════════════
+
+@app.route('/api/tuitions/search', methods=['GET'])
+def search_tuitions():
+    """Search for a tuition by name or phone (for parent login screen)."""
+    query = request.args.get('q', '').strip()
+    if len(query) < 2:
+        return success([])
+
+    conn = get_db_connection()
+    tuitions = conn.execute(
+        '''SELECT id, name, phone, address FROM tuitions
+           WHERE (name LIKE ? OR phone LIKE ?) AND is_active = 1 LIMIT 10''',
+        (f'%{query}%', f'%{query}%')
+    ).fetchall()
+    conn.close()
+
+    return success([dict(t) for t in tuitions])
+
+
+# ──────────────────────────────────────────
+#  Run the app
+# ──────────────────────────────────────────
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0')
+    app.run(debug=True, host='0.0.0.0', port=5000)
