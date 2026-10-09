@@ -33,10 +33,17 @@ export function AuthProvider({ children }) {
         AsyncStorage.getItem(STORAGE_KEYS.USER),
         AsyncStorage.getItem(STORAGE_KEYS.TYPE),
       ]);
-      if (savedToken && savedUser) {
+      
+      const isValidToken = savedToken && savedToken !== 'null' && savedToken !== 'undefined';
+      const isValidUser = savedUser && savedUser !== 'null' && savedUser !== 'undefined';
+
+      if (isValidToken && isValidUser) {
         setToken(savedToken);
         setUser(JSON.parse(savedUser));
         setUserType(savedType);
+      } else {
+        // If anything is corrupted, clean up
+        await logout();
       }
     } catch (e) {
       console.log('Session load error:', e);

@@ -41,11 +41,6 @@ function FeesStack() {
   );
 }
 
-// ─── Tab Icon helper ─────────────────────────────
-function TabIcon(emoji, focused) {
-  return <Text style={{ fontSize: focused ? 22 : 20, opacity: focused ? 1 : 0.5 }}>{emoji}</Text>;
-}
-
 // ─────────────────────────────────────────────────
 //  TuitionNavigator — Bottom Tab Navigator for admins
 // ─────────────────────────────────────────────────
@@ -58,32 +53,33 @@ export default function TuitionNavigator() {
         tabBarLabelStyle: styles.tabLabel,
         tabBarActiveTintColor:   Colors.primary,
         tabBarInactiveTintColor: Colors.textMuted,
+        tabBarIconStyle: { display: 'none' }, // Hides the empty icon space
       }}
     >
       <Tab.Screen
         name="Dashboard"
         component={DashboardScreen}
-        options={{ tabBarIcon: ({ focused }) => TabIcon('🏠', focused), tabBarLabel: 'Home' }}
+        options={{ tabBarLabel: 'Home' }}
       />
       <Tab.Screen
         name="Students"
         component={StudentsStack}
-        options={{ tabBarIcon: ({ focused }) => TabIcon('👨‍🎓', focused), tabBarLabel: 'Students' }}
+        options={{ tabBarLabel: 'Students' }}
       />
       <Tab.Screen
         name="Attendance"
         component={AttendanceScreen}
-        options={{ tabBarIcon: ({ focused }) => TabIcon('📋', focused), tabBarLabel: 'Attend' }}
+        options={{ tabBarLabel: 'Attend' }}
       />
       <Tab.Screen
         name="Fees"
         component={FeesStack}
-        options={{ tabBarIcon: ({ focused }) => TabIcon('💰', focused), tabBarLabel: 'Fees' }}
+        options={{ tabBarLabel: 'Fees' }}
       />
       <Tab.Screen
         name="More"
         component={ReportsScreen}
-        options={{ tabBarIcon: ({ focused }) => TabIcon('📊', focused), tabBarLabel: 'Reports' }}
+        options={{ tabBarLabel: 'Reports' }}
       />
     </Tab.Navigator>
   );

@@ -83,7 +83,7 @@ export default function StudentsScreen({ navigation }) {
         )}
         ListEmptyComponent={
           !loading && <EmptyState
-            icon="🎒"
+            icon="--"
             title="No Students Found"
             message={search ? "Try adjusting your search" : "Add your first student to get started"}
           />

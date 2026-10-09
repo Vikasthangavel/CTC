@@ -51,13 +51,13 @@ export default function DashboardScreen({ navigation }) {
           <StatCard
             label="Active Students"
             value={data?.student_count?.toString() || '0'}
-            icon="👨‍🎓"
+            icon="Students"
             color={Colors.primary}
           />
           <StatCard
             label="Paid Fees"
             value={data?.paid_count?.toString() || '0'}
-            icon="💳"
+            icon="Paid"
             color={Colors.success}
           />
         </View>
@@ -67,7 +67,7 @@ export default function DashboardScreen({ navigation }) {
           <StatCard
             label="Collected this Month"
             value={formatCurrency(data?.total_collected)}
-            icon="💰"
+            icon="Total"
             color={Colors.warning}
           />
         </View>
@@ -75,7 +75,7 @@ export default function DashboardScreen({ navigation }) {
         {/* Birthdays Section */}
         {data?.birthday_students?.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🎂 Birthdays This Month</Text>
+            <Text style={styles.sectionTitle}>Birthdays This Month</Text>
             {data.birthday_students.map(s => (
               <View key={s.id} style={styles.birthdayCard}>
                 <Text style={styles.birthdayText}>{s.name} (Grade {s.grade})</Text>
@@ -88,7 +88,7 @@ export default function DashboardScreen({ navigation }) {
         {/* Announcements Preview */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>📣 Recent Announcements</Text>
+            <Text style={styles.sectionTitle}>Recent Announcements</Text>
           </View>
           {data?.announcements?.length > 0 ? (
             data.announcements.slice(0, 3).map(a => (
@@ -105,7 +105,7 @@ export default function DashboardScreen({ navigation }) {
         {/* Reports Preview */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>📝 Parent Reports</Text>
+            <Text style={styles.sectionTitle}>Parent Reports</Text>
             <TouchableOpacity onPress={() => navigation.navigate('More')}>
               <Text style={styles.linkText}>View All</Text>
             </TouchableOpacity>

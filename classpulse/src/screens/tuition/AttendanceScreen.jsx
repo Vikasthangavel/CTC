@@ -123,7 +123,7 @@ export default function AttendanceScreen({ navigation }) {
       {/* Date & Session Toggle Placeholder (Can be expanded to a DatePicker) */}
       <View style={styles.toolbar}>
         <TouchableOpacity style={styles.toggleBtn} onPress={() => setSession(session === 'Morning' ? 'Evening' : 'Morning')}>
-          <Text style={styles.toggleText}>🔄 {session} Session</Text>
+          <Text style={styles.toggleText}>{session} Session</Text>
         </TouchableOpacity>
         <Text style={styles.statsText}>
           <Text style={{color: Colors.success}}>{stats.present} P</Text> ·{' '}

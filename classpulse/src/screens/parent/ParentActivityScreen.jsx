@@ -51,7 +51,7 @@ export default function ParentActivityScreen() {
           </View>
         )}
         ListEmptyComponent={
-          !loading && <EmptyState icon="📚" title="No Activities logged" message="Tuition admin hasn't logged anything for this month yet." />
+          !loading && <EmptyState icon="--" title="No Activities logged" message="Tuition admin hasn't logged anything for this month yet." />
         }
       />
     </View>

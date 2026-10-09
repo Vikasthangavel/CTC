@@ -10,10 +10,6 @@ import ParentReportScreen   from '../screens/parent/ParentReportScreen';
 
 const Tab = createBottomTabNavigator();
 
-function TabIcon(emoji, focused) {
-  return <Text style={{ fontSize: focused ? 22 : 20, opacity: focused ? 1 : 0.5 }}>{emoji}</Text>;
-}
-
 export default function ParentNavigator() {
   return (
     <Tab.Navigator
@@ -23,27 +19,28 @@ export default function ParentNavigator() {
         tabBarLabelStyle: styles.tabLabel,
         tabBarActiveTintColor:   Colors.secondary,
         tabBarInactiveTintColor: Colors.textMuted,
+        tabBarIconStyle: { display: 'none' }, // Hides the empty icon space
       }}
     >
       <Tab.Screen
         name="Home"
         component={ParentHomeScreen}
-        options={{ tabBarIcon: ({ focused }) => TabIcon('🏠', focused), tabBarLabel: 'Home' }}
+        options={{ tabBarLabel: 'Home' }}
       />
       <Tab.Screen
         name="Activity"
         component={ParentActivityScreen}
-        options={{ tabBarIcon: ({ focused }) => TabIcon('📚', focused), tabBarLabel: 'Activities' }}
+        options={{ tabBarLabel: 'Activities' }}
       />
       <Tab.Screen
         name="Fees"
         component={ParentFeesScreen}
-        options={{ tabBarIcon: ({ focused }) => TabIcon('💳', focused), tabBarLabel: 'Fees' }}
+        options={{ tabBarLabel: 'Fees' }}
       />
       <Tab.Screen
         name="Contact"
         component={ParentReportScreen}
-        options={{ tabBarIcon: ({ focused }) => TabIcon('💬', focused), tabBarLabel: 'Message' }}
+        options={{ tabBarLabel: 'Message' }}
       />
     </Tab.Navigator>
   );

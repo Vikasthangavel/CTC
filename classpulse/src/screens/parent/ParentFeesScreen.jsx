@@ -63,7 +63,7 @@ export default function ParentFeesScreen() {
           );
         }}
         ListEmptyComponent={
-          !loading && <EmptyState icon="💳" title="No Fee Records" message="Tuition hasn't tracked any fees yet." />
+          !loading && <EmptyState icon="--" title="No Fee Records" message="Tuition hasn't tracked any fees yet." />
         }
       />
     </View>

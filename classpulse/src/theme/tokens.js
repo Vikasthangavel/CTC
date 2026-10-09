@@ -6,45 +6,45 @@
 
 export const Colors = {
   // Brand
-  primary:       '#6C5CE7',   // Deep violet
-  primaryLight:  '#A29BFE',
-  primaryDark:   '#5A4FCF',
+  primary:       '#2563eb',
+  primaryLight:  '#eff6ff',
+  primaryDark:   '#1d4ed8',
 
-  secondary:     '#00CEC9',   // Teal accent
-  secondaryLight:'#81ECEC',
+  secondary:     '#0284c7',
+  secondaryLight:'#f0f9ff',
 
-  accent:        '#FDCB6E',   // Warm yellow
+  accent:        '#d97706',
 
   // Status
-  success:       '#00B894',
-  successLight:  '#D4EFDF',
-  warning:       '#FDCB6E',
-  warningLight:  '#FEF9E7',
-  danger:        '#E17055',
-  dangerLight:   '#FDECEA',
-  info:          '#74B9FF',
+  success:       '#16a34a',
+  successLight:  '#f0fdf4',
+  warning:       '#d97706',
+  warningLight:  '#fffbeb',
+  danger:        '#dc2626',
+  dangerLight:   '#fef2f2',
+  info:          '#0284c7',
 
   // Backgrounds
-  bg:            '#0F0E17',   // Very dark (near black) background
-  bgCard:        '#1A1928',   // Slightly lighter card background
-  bgCardAlt:     '#211F35',
-  bgSurface:     '#2A2840',
+  bg:            '#f8fafc',
+  bgCard:        '#ffffff',
+  bgCardAlt:     '#f1f5f9',
+  bgSurface:     '#ffffff',
 
   // Text
-  textPrimary:   '#FFFFFE',
-  textSecondary: '#A8A6C0',
-  textMuted:     '#5E5B7E',
-  textInverse:   '#0F0E17',
+  textPrimary:   '#1e293b',
+  textSecondary: '#64748b',
+  textMuted:     '#94a3b8',
+  textInverse:   '#ffffff',
 
   // Borders
-  border:        '#2E2C4A',
-  borderLight:   '#3A3858',
+  border:        '#e2e8f0',
+  borderLight:   '#f1f5f9',
 
   // Gradients (use as array for LinearGradient)
-  gradientPrimary:   ['#6C5CE7', '#A29BFE'],
-  gradientSecondary: ['#00CEC9', '#81ECEC'],
-  gradientDark:      ['#1A1928', '#0F0E17'],
-  gradientCard:      ['#211F35', '#1A1928'],
+  gradientPrimary:   ['#2563eb', '#1d4ed8'],
+  gradientSecondary: ['#0284c7', '#0369a1'],
+  gradientDark:      ['#f1f5f9', '#f8fafc'],
+  gradientCard:      ['#ffffff', '#ffffff'],
 };
 
 export const Spacing = {

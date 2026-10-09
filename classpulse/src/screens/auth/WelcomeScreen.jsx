@@ -33,14 +33,13 @@ export default function WelcomeScreen({ navigation }) {
         {/* Feature highlights */}
         <View style={styles.features}>
           {[
-            { icon: '👨‍🎓', label: 'Manage Students' },
-            { icon: '📋', label: 'Track Attendance' },
-            { icon: '💰', label: 'Collect Fees' },
-            { icon: '📣', label: 'Parent Connect' },
-          ].map((f) => (
-            <View key={f.label} style={styles.featureItem}>
-              <Text style={styles.featureIcon}>{f.icon}</Text>
-              <Text style={styles.featureLabel}>{f.label}</Text>
+            'Manage Students',
+            'Track Attendance',
+            'Collect Fees',
+            'Parent Connect',
+          ].map((label) => (
+            <View key={label} style={styles.featureItem}>
+              <Text style={styles.featureLabel}>• {label}</Text>
             </View>
           ))}
         </View>

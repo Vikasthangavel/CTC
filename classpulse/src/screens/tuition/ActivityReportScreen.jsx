@@ -103,14 +103,14 @@ export default function ActivityReportScreen({ route, navigation }) {
             <View style={styles.cardHeader}>
               <Text style={styles.date}>{formatDate(item.date)}</Text>
               <TouchableOpacity onPress={() => handleDelete(item.id)}>
-                <Text style={styles.delBtn}>🗑️</Text>
+                <Text style={styles.delBtn}>X</Text>
               </TouchableOpacity>
             </View>
             <Text style={styles.content}>{item.content}</Text>
           </View>
         )}
         ListEmptyComponent={
-          !loading && <EmptyState icon="📝" title="No Activities" message="Log what the student learned today." />
+          !loading && <EmptyState icon="--" title="No Activities" message="Log what the student learned today." />
         }
       />
     </View>

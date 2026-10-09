@@ -53,7 +53,7 @@ export default function ReportsScreen() {
           </View>
         )}
         ListEmptyComponent={
-          !loading && <EmptyState icon="📝" title="No Reports" message="You have no messages from parents." />
+          !loading && <EmptyState icon="--" title="No Reports" message="You have no messages from parents." />
         }
       />
     </View>

@@ -76,14 +76,14 @@ export default function ParentHomeScreen({ navigation }) {
           data.announcements.map(a => (
             <View key={a.id} style={styles.card}>
               <View style={styles.cardHeader}>
-                <Text style={styles.cardIcon}>📣</Text>
+                <Text style={styles.cardIcon}>!</Text>
                 <Text style={styles.date}>{formatDate(a.created_at)}</Text>
               </View>
               <Text style={styles.content}>{a.message}</Text>
             </View>
           ))
         ) : (
-          <EmptyState icon="📭" title="No Announcements" message="Nothing from the tuition right now." />
+          <EmptyState icon="--" title="No Announcements" message="Nothing from the tuition right now." />
         )}
 
       </ScrollView>

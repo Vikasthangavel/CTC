@@ -9,9 +9,25 @@ import json
 from db import init_db, get_db_connection
 
 # ──────────────────────────────────────────
+#  Patch: Allow non-string JWT subjects
+#  PyJWT 2.x enforces sub must be a string.
+#  We disable that check so both old (dict)
+#  and new (string) tokens work seamlessly.
+# ──────────────────────────────────────────
+import jwt.api_jwt
+jwt.api_jwt.PyJWT._validate_sub = lambda self, payload, subject=None: None
+
+# ──────────────────────────────────────────
 #  App Setup
 # ──────────────────────────────────────────
 app = Flask(__name__)
+
+@app.before_request
+def log_request_info():
+    auth_header = request.headers.get('Authorization')
+    if auth_header:
+        print(f"[{request.method} {request.path}] Authorization Header: '{auth_header}'")
+
 app.config['JWT_SECRET_KEY'] = 'classpulse-secret-key-change-in-production'
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=12)
 
@@ -33,15 +49,25 @@ def error(message='Error', status=400):
     """Standard error response."""
     return jsonify({'success': False, 'message': message}), status
 
+def _parse_identity():
+    """Parse JWT identity — handles both old dict tokens and new string tokens."""
+    raw = get_jwt_identity()
+    if isinstance(raw, dict):
+        return raw
+    if isinstance(raw, str):
+        try:
+            return json.loads(raw)
+        except (json.JSONDecodeError, TypeError):
+            return {}
+    return {}
+
 def get_tuition_id():
     """Get the tuition_id from the JWT identity."""
-    identity = get_jwt_identity()
-    return identity.get('tuition_id')
+    return _parse_identity().get('tuition_id')
 
 def get_identity_type():
     """Get the user type from JWT (tuition_admin or parent)."""
-    identity = get_jwt_identity()
-    return identity.get('type')
+    return _parse_identity().get('type')
 
 
 # ══════════════════════════════════════════
@@ -83,7 +109,8 @@ def signup():
     conn.close()
 
     # Create JWT token for the new tuition
-    token = create_access_token(identity={'tuition_id': tuition['id'], 'type': 'tuition_admin'})
+    identity_str = json.dumps({'tuition_id': tuition['id'], 'type': 'tuition_admin'})
+    token = create_access_token(identity=identity_str)
 
     return success({
         'token': token,
@@ -118,7 +145,8 @@ def login():
     if not tuition:
         return error('Invalid phone or password.', 401)
 
-    token = create_access_token(identity={'tuition_id': tuition['id'], 'type': 'tuition_admin'})
+    identity_str = json.dumps({'tuition_id': tuition['id'], 'type': 'tuition_admin'})
+    token = create_access_token(identity=identity_str)
 
     return success({
         'token': token,
@@ -153,11 +181,12 @@ def parent_login():
     if not students:
         return error('Phone number not registered with any student in this tuition.', 401)
 
-    token = create_access_token(identity={
+    identity_str = json.dumps({
         'tuition_id': tuition_id,
         'parent_phone': phone,
         'type': 'parent'
     })
+    token = create_access_token(identity=identity_str)
 
     return success({
         'token': token,

@@ -6,7 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 //  Change BASE_URL to your server IP when deploying.
 // ─────────────────────────────────────────
 
-const BASE_URL = 'http://192.168.1.39:5000'; // ← Change to your Flask server IP
+const BASE_URL = 'http://localhost:5000'; // ← Change to your Flask server IP
 
 const api = axios.create({
   baseURL: BASE_URL,
@@ -14,10 +14,9 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
-// Attach JWT token to every request automatically
 api.interceptors.request.use(async (config) => {
   const token = await AsyncStorage.getItem('cp_token');
-  if (token) {
+  if (token && token !== 'null' && token !== 'undefined') {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;

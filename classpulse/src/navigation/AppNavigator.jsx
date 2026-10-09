@@ -1,7 +1,8 @@
 import React from 'react';
-import { NavigationContainer, DarkTheme } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuth } from '../context/AuthContext';
+import { Colors } from '../theme/tokens';
 
 // Auth Screens
 import WelcomeScreen        from '../screens/auth/WelcomeScreen';
@@ -18,19 +19,17 @@ import LoadingSpinner from '../components/LoadingSpinner';
 const Stack = createNativeStackNavigator();
 
 // ─────────────────────────────────────────
-//  ClassPulse dark navigation theme
-//  Applied to NavigationContainer so the background
-//  matches the dark app theme on web + mobile.
+//  ClassPulse navigation theme
 // ─────────────────────────────────────────
 const ClassPulseTheme = {
-  ...DarkTheme,
+  ...DefaultTheme,
   colors: {
-    ...DarkTheme.colors,
-    primary:    '#6C5CE7',
-    background: '#0F0E17',
-    card:       '#1A1928',
-    text:       '#FFFFFE',
-    border:     '#2E2C4A',
+    ...DefaultTheme.colors,
+    primary:    Colors.primary,
+    background: Colors.bg,
+    card:       Colors.bgCard,
+    text:       Colors.textPrimary,
+    border:     Colors.border,
   },
 };
 
