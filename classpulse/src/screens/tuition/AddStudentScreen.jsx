@@ -1,10 +1,21 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, Alert, KeyboardAvoidingView, Platform, TouchableOpacity, Text } from 'react-native';
 import { Colors, Spacing, FontSize } from '../../theme/tokens';
-import AppHeader from '../../components/AppHeader';
-import Input     from '../../components/Input';
-import Button    from '../../components/Button';
+import AppHeader      from '../../components/AppHeader';
+import Input          from '../../components/Input';
+import Button         from '../../components/Button';
+import SelectModal    from '../../components/SelectModal';
+import DatePickerModal from '../../components/DatePickerModal';
 import { studentsAPI } from '../../services/api';
+
+const GRADE_OPTIONS = [
+  '1st', '2nd', '3rd', '4th', '5th', '6th', 
+  '7th', '8th', '9th', '10th', '11th', '12th'
+];
+
+const BLOOD_GROUP_OPTIONS = [
+  'A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'
+];
 
 export default function AddStudentScreen({ navigation }) {
   const [form, setForm] = useState({
@@ -62,11 +73,32 @@ export default function AddStudentScreen({ navigation }) {
       />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Input label="Student Name *" value={form.name} onChangeText={v => set('name', v)} error={errors.name} />
-        <Input label="Grade / Standard *" value={form.grade} onChangeText={v => set('grade', v)} keyboardType="numeric" error={errors.grade} />
+        
+        <SelectModal 
+          label="Grade / Standard *" 
+          value={form.grade} 
+          options={GRADE_OPTIONS} 
+          onSelect={v => set('grade', v)} 
+          error={errors.grade}
+          placeholder="Select Grade (1st to 12th)"
+        />
         
         <View style={styles.row}>
-          <Input label="Date of Birth" placeholder="YYYY-MM-DD" value={form.dob} onChangeText={v => set('dob', v)} style={{flex:1}} />
-          <Input label="Blood Group" placeholder="e.g. O+" value={form.blood_group} onChangeText={v => set('blood_group', v)} style={{flex:1}} />
+          <DatePickerModal 
+            label="Date of Birth" 
+            value={form.dob} 
+            onChange={v => set('dob', v)} 
+            maxDate="today"
+            style={{flex: 1}} 
+          />
+          <SelectModal 
+            label="Blood Group" 
+            value={form.blood_group} 
+            options={BLOOD_GROUP_OPTIONS} 
+            onSelect={v => set('blood_group', v)} 
+            placeholder="Select"
+            style={{flex: 1}} 
+          />
         </View>
 
         <Input label="Monthly Fee (₹)" value={form.monthly_fee} onChangeText={v => set('monthly_fee', v)} keyboardType="numeric" />

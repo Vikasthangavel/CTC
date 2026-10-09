@@ -22,12 +22,6 @@ jwt.api_jwt.PyJWT._validate_sub = lambda self, payload, subject=None: None
 # ──────────────────────────────────────────
 app = Flask(__name__)
 
-@app.before_request
-def log_request_info():
-    auth_header = request.headers.get('Authorization')
-    if auth_header:
-        print(f"[{request.method} {request.path}] Authorization Header: '{auth_header}'")
-
 app.config['JWT_SECRET_KEY'] = 'classpulse-secret-key-change-in-production'
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=12)
 
@@ -223,24 +217,47 @@ def get_profile():
 @app.route('/api/students', methods=['GET'])
 @jwt_required()
 def get_students():
-    """Get all students for this tuition."""
+    """Get all students for this tuition with calculated attendance percentage."""
     tuition_id  = get_tuition_id()
     show_inactive = request.args.get('show_inactive', 'false') == 'true'
 
     conn = get_db_connection()
     if show_inactive:
         students = conn.execute(
-            'SELECT * FROM students WHERE tuition_id = ? ORDER BY grade, name',
-            (tuition_id,)
+            '''SELECT s.*, 
+                      COUNT(a.id) as total_marked,
+                      SUM(CASE WHEN a.status = 'Present' THEN 1 ELSE 0 END) as present_count
+               FROM students s
+               LEFT JOIN attendance a ON s.id = a.student_id AND a.tuition_id = ?
+               WHERE s.tuition_id = ?
+               GROUP BY s.id
+               ORDER BY s.grade, s.name''',
+            (tuition_id, tuition_id)
         ).fetchall()
     else:
         students = conn.execute(
-            'SELECT * FROM students WHERE tuition_id = ? AND is_active = 1 ORDER BY grade, name',
-            (tuition_id,)
+            '''SELECT s.*, 
+                      COUNT(a.id) as total_marked,
+                      SUM(CASE WHEN a.status = 'Present' THEN 1 ELSE 0 END) as present_count
+               FROM students s
+               LEFT JOIN attendance a ON s.id = a.student_id AND a.tuition_id = ?
+               WHERE s.tuition_id = ? AND s.is_active = 1
+               GROUP BY s.id
+               ORDER BY s.grade, s.name''',
+            (tuition_id, tuition_id)
         ).fetchall()
     conn.close()
 
-    return success([dict(s) for s in students])
+    result = []
+    for s in students:
+        item = dict(s)
+        total = item.get('total_marked', 0) or 0
+        present = item.get('present_count', 0) or 0
+        pct = round((present / total * 100), 1) if total > 0 else None
+        item['attendance_percentage'] = pct
+        result.append(item)
+
+    return success(result)
 
 
 @app.route('/api/students', methods=['POST'])
@@ -464,7 +481,7 @@ def get_monthly_attendance_stats():
            LEFT JOIN attendance a
                ON s.id = a.student_id
                AND a.tuition_id = ?
-               AND LEFT(a.date, 7) = ?
+               AND substr(a.date, 1, 7) = ?
            WHERE s.tuition_id = ? AND s.is_active = 1
            GROUP BY s.id, s.name, s.grade
            ORDER BY s.grade, s.name''',
@@ -487,6 +504,23 @@ def get_monthly_attendance_stats():
         })
 
     return success(result)
+
+
+@app.route('/api/attendance/student/<int:student_id>', methods=['GET'])
+@jwt_required()
+def get_student_attendance_history(student_id):
+    """Get date-wise attendance records for a single student."""
+    tuition_id = get_tuition_id()
+    conn = get_db_connection()
+    records = conn.execute(
+        '''SELECT id, date, session, status FROM attendance
+           WHERE tuition_id = ? AND student_id = ?
+           ORDER BY date DESC, session DESC''',
+        (tuition_id, student_id)
+    ).fetchall()
+    conn.close()
+
+    return success([dict(r) for r in records])
 
 
 # ══════════════════════════════════════════
@@ -528,7 +562,7 @@ def get_activities(student_id):
     conn = get_db_connection()
     activities = conn.execute(
         '''SELECT * FROM daily_activities
-           WHERE tuition_id = ? AND student_id = ? AND LEFT(activity_date, 7) = ?
+           WHERE tuition_id = ? AND student_id = ? AND substr(activity_date, 1, 7) = ?
            ORDER BY activity_date DESC, created_at DESC''',
         (tuition_id, student_id, month)
     ).fetchall()
@@ -896,7 +930,7 @@ def get_analytics():
             '''SELECT COUNT(*) as total,
                       SUM(CASE WHEN status = "Present" THEN 1 ELSE 0 END) as present
                FROM attendance
-               WHERE tuition_id = ? AND LEFT(date, 7) = ?''',
+               WHERE tuition_id = ? AND substr(date, 1, 7) = ?''',
             (tuition_id, m)
         ).fetchone()
         total   = rows['total'] or 0
@@ -980,15 +1014,19 @@ def parent_home():
     ).fetchall()
 
     student_ids = [s['id'] for s in students]
-    grades      = [s['grade'] for s in students]
+    grades      = [str(s['grade']) for s in students]
     filtered    = []
     for ann in all_announcements:
         if ann['target_type'] == 'all' or ann['target_type'] is None:
             filtered.append(dict(ann))
-        elif ann['target_type'] == 'grade' and ann['target_value'] and int(ann['target_value']) in grades:
+        elif ann['target_type'] == 'grade' and ann['target_value'] and str(ann['target_value']) in grades:
             filtered.append(dict(ann))
-        elif ann['target_type'] == 'student' and ann['target_value'] and int(ann['target_value']) in student_ids:
-            filtered.append(dict(ann))
+        elif ann['target_type'] == 'student' and ann['target_value']:
+            try:
+                if int(ann['target_value']) in student_ids:
+                    filtered.append(dict(ann))
+            except (ValueError, TypeError):
+                pass
 
     conn.close()
 
@@ -1022,7 +1060,7 @@ def parent_get_activities(student_id):
 
     activities = conn.execute(
         '''SELECT * FROM daily_activities
-           WHERE student_id = ? AND tuition_id = ? AND LEFT(activity_date, 7) = ?
+           WHERE student_id = ? AND tuition_id = ? AND substr(activity_date, 1, 7) = ?
            ORDER BY activity_date DESC''',
         (student_id, tuition_id, month)
     ).fetchall()

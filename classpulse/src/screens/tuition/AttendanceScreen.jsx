@@ -6,7 +6,8 @@ import AppHeader      from '../../components/AppHeader';
 import Button         from '../../components/Button';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import EmptyState     from '../../components/EmptyState';
-import { attendanceAPI } from '../../services/api';
+import DatePickerModal from '../../components/DatePickerModal';
+import { attendanceAPI, studentsAPI } from '../../services/api';
 import { today, getInitials } from '../../utils/formatters';
 
 export default function AttendanceScreen({ navigation }) {
@@ -22,16 +23,21 @@ export default function AttendanceScreen({ navigation }) {
   const fetchAttendance = async () => {
     try {
       setLoading(true);
-      const res = await attendanceAPI.getByDate(date, session);
-      const fetchedStudents = res.data.data;
-      
-      // Initialize state map based on fetched data
+      const [studentsRes, attendanceRes] = await Promise.all([
+        studentsAPI.getAll(false),
+        attendanceAPI.getByDate(date, session)
+      ]);
+
+      const studentList = studentsRes?.data?.data || [];
+      const attendanceMap = attendanceRes?.data?.data || {};
+
+      // Initialize state map based on fetched attendance map
       const stateMap = {};
-      fetchedStudents.forEach(s => {
-        stateMap[s.id] = s.status || 'Present'; // default to Present if unmarked
+      studentList.forEach(s => {
+        stateMap[s.id] = attendanceMap[s.id] || attendanceMap[String(s.id)] || 'Present';
       });
-      
-      setStudents(fetchedStudents);
+
+      setStudents(studentList);
       setAttendanceState(stateMap);
     } catch (e) {
       console.log('Attendance fetch error', e);
@@ -62,10 +68,7 @@ export default function AttendanceScreen({ navigation }) {
       const payload = {
         date,
         session,
-        attendance: Object.entries(attendanceState).map(([id, status]) => ({
-          student_id: parseInt(id, 10),
-          status
-        }))
+        status_map: attendanceState
       };
       await attendanceAPI.saveBulk(payload);
       Alert.alert('Success', 'Attendance saved successfully!');
@@ -116,15 +119,58 @@ export default function AttendanceScreen({ navigation }) {
     );
   };
 
+  const changeDate = (delta) => {
+    const parts = date.split('-');
+    const current = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+    current.setDate(current.getDate() + delta);
+    
+    const now = new Date();
+    now.setHours(23, 59, 59, 999);
+    if (current > now) return;
+
+    const y = current.getFullYear();
+    const m = current.getMonth() + 1;
+    const d = current.getDate();
+    const mStr = m < 10 ? `0${m}` : `${m}`;
+    const dStr = d < 10 ? `0${d}` : `${d}`;
+    setDate(`${y}-${mStr}-${dStr}`);
+  };
+
+  const isToday = date === today();
+
   return (
     <View style={styles.container}>
       <AppHeader title="Attendance" subtitle={`${date} · ${session}`} />
 
-      {/* Date & Session Toggle Placeholder (Can be expanded to a DatePicker) */}
-      <View style={styles.toolbar}>
+      {/* Date & Session Navigation Bar */}
+      <View style={styles.dateBar}>
+        <View style={styles.dateStepper}>
+          <TouchableOpacity style={styles.stepBtn} onPress={() => changeDate(-1)}>
+            <Text style={styles.stepText}>◄</Text>
+          </TouchableOpacity>
+
+          <DatePickerModal 
+            value={date} 
+            onChange={setDate} 
+            maxDate="today" 
+            style={{ marginBottom: 0, flex: 1 }} 
+          />
+
+          <TouchableOpacity 
+            style={[styles.stepBtn, isToday && styles.stepBtnDisabled]} 
+            onPress={() => changeDate(1)}
+            disabled={isToday}
+          >
+            <Text style={[styles.stepText, isToday && styles.stepTextDisabled]}>►</Text>
+          </TouchableOpacity>
+        </View>
+
         <TouchableOpacity style={styles.toggleBtn} onPress={() => setSession(session === 'Morning' ? 'Evening' : 'Morning')}>
           <Text style={styles.toggleText}>{session} Session</Text>
         </TouchableOpacity>
+      </View>
+
+      <View style={styles.toolbar}>
         <Text style={styles.statsText}>
           <Text style={{color: Colors.success}}>{stats.present} P</Text> ·{' '}
           <Text style={{color: Colors.danger}}>{stats.absent} A</Text> ·{' '}
@@ -155,9 +201,35 @@ export default function AttendanceScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bg, padding: Spacing.md },
+  dateBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
+  dateStepper: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  stepBtn: {
+    backgroundColor: Colors.bgCard,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  stepBtnDisabled: { opacity: 0.3 },
+  stepText: { color: Colors.primary, fontSize: FontSize.sm, fontWeight: 'bold' },
+  stepTextDisabled: { color: Colors.textMuted },
   toolbar: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
     marginBottom: Spacing.md,
     backgroundColor: Colors.bgCard,

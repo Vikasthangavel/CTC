@@ -38,7 +38,7 @@ export default function StudentFeesScreen({ route, navigation }) {
       <View style={styles.card}>
         <View style={styles.cardLeft}>
           <Text style={styles.monthText}>{formatMonth(item.month_year)}</Text>
-          <Text style={styles.amountText}>{formatCurrency(item.amount_paid)}</Text>
+          <Text style={styles.amountText}>{formatCurrency(item.amount || item.amount_paid || 0)}</Text>
         </View>
         <View style={styles.cardRight}>
           <Badge label={item.status} variant={isPaid ? 'success' : 'warning'} />

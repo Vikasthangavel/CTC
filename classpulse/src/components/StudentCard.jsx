@@ -40,7 +40,18 @@ export default function StudentCard({ student, onPress, onLongPress, rightAction
 
       {/* Right side */}
       <View style={styles.right}>
-        {!isActive && <Badge label="Inactive" variant="muted" />}
+        {isActive ? (
+          student.attendance_percentage !== null && student.attendance_percentage !== undefined ? (
+            <Badge 
+              label={`${student.attendance_percentage}%`} 
+              variant={student.attendance_percentage >= 75 ? 'success' : 'danger'} 
+            />
+          ) : (
+            <Badge label="N/A" variant="muted" />
+          )
+        ) : (
+          <Badge label="Inactive" variant="muted" />
+        )}
         {rightAction}
       </View>
     </TouchableOpacity>

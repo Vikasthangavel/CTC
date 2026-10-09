@@ -1,12 +1,12 @@
 import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorage from '../utils/storage';
 
 // ─────────────────────────────────────────
 //  API Client — Axios instance for ClassPulse Flask backend
 //  Change BASE_URL to your server IP when deploying.
 // ─────────────────────────────────────────
 
-const BASE_URL = 'http://localhost:5000'; // ← Change to your Flask server IP
+const BASE_URL = 'http://192.168.1.35:5000'; // ← Change to your Flask server IP
 
 const api = axios.create({
   baseURL: BASE_URL,
@@ -56,9 +56,10 @@ export const studentsAPI = {
 //  ATTENDANCE
 // ──────────────────────────────────────────
 export const attendanceAPI = {
-  getByDate:     (date, session = 'Evening') => api.get(`/api/attendance?date=${date}&session=${session}`),
-  saveBulk:      (data) => api.post('/api/attendance/bulk', data),
-  getMonthlyStats: (month) => api.get(`/api/attendance/monthly-stats?month=${month}`),
+  getByDate:        (date, session = 'Evening') => api.get(`/api/attendance?date=${date}&session=${session}`),
+  saveBulk:         (data) => api.post('/api/attendance/bulk', data),
+  getMonthlyStats:  (month) => api.get(`/api/attendance/monthly-stats?month=${month}`),
+  getStudentHistory:(studentId) => api.get(`/api/attendance/student/${studentId}`),
 };
 
 // ──────────────────────────────────────────
